@@ -12,6 +12,6 @@ output = R.out.$(Cluster).$(Process)
 
 request_cpus   = 1
 request_memory = 12GB
-request_disk   = 1GB
+request_disk   = 12GB
 
 queue 100
