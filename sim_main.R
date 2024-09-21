@@ -154,3 +154,4 @@ pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to sa
 traceplot(fit_df, c("alpha00","alpha01","alpha02","alpha03","alpha04","alpha11","alpha12","alpha13","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e"))
 dev.off()
 
+

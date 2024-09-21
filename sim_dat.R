@@ -6,7 +6,7 @@ library(dplyr)
 dirg <- "C:/Users/feiyi/OneDrive/Desktop/Katie/Terminal-Decline"
 setwd(dirg)
 
-num_simulations <- 2
+num_simulations <- 100
 
 # Simulation loop
 for (sim in 1:num_simulations) {
