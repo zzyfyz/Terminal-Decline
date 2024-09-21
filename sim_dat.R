@@ -89,7 +89,9 @@ for (sim in 1:num_simulations) {
     left_join(data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, time = observed_times, death = survival_times, status),
               by = "subject")
   
-  
+  mask_df <- as.data.frame(mask)
+  filename <- paste0("mask.", sim-1, ".csv")
+  write.csv(mask_df, file = filename, row.names = FALSE)
   
   filename <- paste0("sim.data.", sim-1, ".csv")
   write.csv(final_data, file = filename, row.names = FALSE)

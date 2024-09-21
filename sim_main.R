@@ -5,6 +5,7 @@ library(tidyr)
 library(dplyr)
 library(rstan)
 
+mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 
   stan_data <- list(
