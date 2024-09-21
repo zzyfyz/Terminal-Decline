@@ -97,3 +97,4 @@ for (sim in 1:num_simulations) {
   write.csv(final_data, file = filename, row.names = FALSE)
   
 }
+
