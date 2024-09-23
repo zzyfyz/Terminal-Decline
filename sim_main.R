@@ -136,7 +136,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -1.2, alpha12 = 0.02, alpha13 = -1.4, b = 0.5, c = 0.2, lambda0 = 0.04, gamma = 1.2, sigma_b = 1, sigma_u = 2, sigma_e = 3)
+  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -2, alpha12 = 0.02, alpha13 = -4, b = 0.5, c = 0.4, lambda0 = 0.03, gamma = 2, sigma_b = 4, sigma_u = 3, sigma_e = 3)
 }
 
 # Compile and sample from the Stan model
