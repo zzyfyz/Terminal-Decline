@@ -27,7 +27,7 @@ for (sim in 1:num_simulations) {
   
   b <- 0.5 
   c <- 0.4
-  lambda0 <- 0.03
+  lambda0 <- 0.04
   gamma <- 2
   sigma_u <- 4
   sigma_b <- 3

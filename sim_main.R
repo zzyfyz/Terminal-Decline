@@ -6,6 +6,7 @@ library(dplyr)
 library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
+time_points <- c(0, 3, 6, 9, 12)
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 
   stan_data <- list(
@@ -19,7 +20,8 @@ final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
     y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
     mask = mask,  # Mask for missing values
     survival_time = final_data$time,  # Survival times
-    status = final_data$status  # Censoring indicator
+    status = final_data$status,  # Censoring indicator
+    time_points = time_points
   )
   
   
@@ -36,6 +38,7 @@ data {
   vector[N] treatment;
   matrix[N, T] y;  // longitudinal measurements
   matrix[N, T] mask;  // mask for missing values
+  real<lower=0> time_points[T]
   real<lower=0> survival_time[N];  // observed survival or censoring times
   int<lower=0,upper=1> status[N];  // censoring indicator
 }
@@ -80,7 +83,7 @@ transformed parameters {
     if (status[i] == 1) {
       death_time[i] = survival_time[i];  // use observed death time for uncensored
     } else {
-      F_C[i] = 1 - exp(-(lambda0 * exp(eta[i])) * survival_time[i]^gamma);
+      F_C[i] = 1 - exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma));
       U_adjusted[i] = F_C[i] + U[i] * (1 - F_C[i]);
       death_time[i] = pow(-log(1 - U_adjusted[i]) / (lambda0 * exp(eta[i])), 1 / gamma);
     }
@@ -115,7 +118,8 @@ model {
   for (i in 1:N) {
     for (t in 1:T) {
       if (mask[i, t]) {
-        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + (death_time[i] - t) * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
+        real back_t = death_time[i] - time_points[t]
+        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + back_t * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
       }
     }
   }
@@ -136,7 +140,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -2, alpha12 = 0.02, alpha13 = -4, b = 0.5, c = 0.4, lambda0 = 0.03, gamma = 2, sigma_b = 4, sigma_u = 3, sigma_e = 3)
+  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -2, alpha12 = 0.02, alpha13 = -4, b = 0.5, c = 0.4, lambda0 = 0.03, gamma = 1.5, sigma_b = 1, sigma_u = 3, sigma_e = 3)
 }
 
 # Compile and sample from the Stan model
