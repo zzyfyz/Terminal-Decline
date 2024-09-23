@@ -36,7 +36,7 @@ for (sim in 1:num_simulations) {
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
   x2 <- rnorm(n, mean = 70, sd = 10)
-  time_points <- seq(0,time, by-3)
+  time_points <- seq(0,time, by=3)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:20, size = 10, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
