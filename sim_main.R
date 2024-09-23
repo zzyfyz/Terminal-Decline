@@ -80,7 +80,7 @@ transformed parameters {
     if (status[i] == 1) {
       death_time[i] = survival_time[i];  // use observed death time for uncensored
     } else {
-      F_C[i] = 1 - exp(-pow(lambda0 * exp(eta[i]) * survival_time[i], gamma));
+      F_C[i] = 1 - exp(-(lambda0 * exp(eta[i])) * survival_time[i]^gamma);
       U_adjusted[i] = F_C[i] + U[i] * (1 - F_C[i]);
       death_time[i] = pow(-log(1 - U_adjusted[i]) / (lambda0 * exp(eta[i])), 1 / gamma);
     }

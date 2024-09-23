@@ -15,28 +15,28 @@ for (sim in 1:num_simulations) {
   cluster <- 20
   cluster_subj <- 50
   n <- cluster * cluster_subj
-  time <- 5
+  time <- 12
   alpha00 <- 10
   alpha01 <- 5
   alpha02 <- 0.3
   alpha03 <- 2 
   alpha04 <- 10 
-  alpha11 <- -1.2
+  alpha11 <- -2
   alpha12 <- 0.02 
-  alpha13 <- -1.4
+  alpha13 <- -4
   
   b <- 0.5 
-  c <- 0.2
-  lambda0 <- 0.04
-  gamma <- 1.2
-  sigma_u <- 2
-  sigma_b <- 1
+  c <- 0.4
+  lambda0 <- 0.03
+  gamma <- 2
+  sigma_u <- 4
+  sigma_b <- 3
   sigma_e <- 3
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
   x2 <- rnorm(n, mean = 70, sd = 10)
-  time_points <- 1:time
+  time_points <- seq(0,time, by-3)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:20, size = 10, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
@@ -61,10 +61,11 @@ for (sim in 1:num_simulations) {
   longitudinal_data <- data.frame()
   
   for (i in 1:n) {
-    for (t in time_points) {
+    for (ind in seq_along(time_points)) {
+      t <- time_points[ind]
       backward_time <- survival_times[i] - t
       if (backward_time > 0) {
-        measurement <- alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + backward_time * alpha03 + treatment[i] * alpha04 + bi[i] + ui[subject_cluster[i]] + epsiloni[i, t]
+        measurement <- alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + backward_time * alpha03 + treatment[i] * alpha04 + bi[i] + ui[subject_cluster[i]] + epsiloni[i, ind]
       } else {
         measurement <- NA
       }
