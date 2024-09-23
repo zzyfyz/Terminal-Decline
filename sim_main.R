@@ -118,7 +118,7 @@ model {
   for (i in 1:N) {
     for (t in 1:T) {
       if (mask[i, t]) {
-        real back_t = death_time[i] - time_points[t]
+        real back_t = death_time[i] - time_points[t];
         y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + back_t * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
       }
     }
