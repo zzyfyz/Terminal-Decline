@@ -38,7 +38,7 @@ data {
   vector[N] treatment;
   matrix[N, T] y;  // longitudinal measurements
   matrix[N, T] mask;  // mask for missing values
-  real<lower=0> time_points[T]
+  real<lower=0> time_points[T];
   real<lower=0> survival_time[N];  // observed survival or censoring times
   int<lower=0,upper=1> status[N];  // censoring indicator
 }
