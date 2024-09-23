@@ -6,28 +6,26 @@ library(dplyr)
 library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
-time_points <- c(0, 3, 6, 9, 12)
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 
-  stan_data <- list(
-    N = nrow(final_data),  # Total number of subjects
-    K = length(unique(final_data$cluster)),  # Number of clusters
-    T = length(grep("time_", names(final_data))),  # Number of time points
-    cluster = final_data$cluster,  # Cluster indicator
-    treatment = final_data$treatment,
-    x1 = final_data$x1,  # Binary covariate
-    x2 = final_data$x2,  # Continuous covariate
-    y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
-    mask = mask,  # Mask for missing values
-    survival_time = final_data$time,  # Survival times
-    status = final_data$status,  # Censoring indicator
-    time_points = time_points
-  )
-  
-  
-  
-  # Compile the Stan model once
-  stan_model_code <- "
+stan_data <- list(
+  N = nrow(final_data),  # Total number of subjects
+  K = length(unique(final_data$cluster)),  # Number of clusters
+  T = length(grep("time_", names(final_data))),  # Number of time points
+  cluster = final_data$cluster,  # Cluster indicator
+  treatment = final_data$treatment,
+  x1 = final_data$x1,  # Binary covariate
+  x2 = final_data$x2,  # Continuous covariate
+  y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
+  mask = mask,  # Mask for missing values
+  survival_time = final_data$time,  # Survival times
+  status = final_data$status  # Censoring indicator
+)
+
+
+
+# Compile the Stan model once
+stan_model_code <- "
 data {
   int<lower=0> N;  // total number of subjects
   int<lower=0> K;  // number of clusters
@@ -38,11 +36,9 @@ data {
   vector[N] treatment;
   matrix[N, T] y;  // longitudinal measurements
   matrix[N, T] mask;  // mask for missing values
-  real<lower=0> time_points[T];
   real<lower=0> survival_time[N];  // observed survival or censoring times
   int<lower=0,upper=1> status[N];  // censoring indicator
 }
-
 parameters {
   real alpha00;
   real alpha01;
@@ -64,7 +60,6 @@ parameters {
   vector[K] z_u;
   vector<lower=0,upper=1>[N] U;
 }
-
 transformed parameters {
   
   vector[N] b_i = z_b * sigma_b; 
@@ -73,7 +68,7 @@ transformed parameters {
   vector[N] F_C;
   vector[N] U_adjusted;
   vector[N] eta;
-
+  
   for (i in 1:N) {
     eta[i] = alpha11 * x1[i] + alpha12 * x2[i] + alpha13 * treatment[i] + c * u_i[cluster[i]] + b * b_i[i];
   }
@@ -118,8 +113,7 @@ model {
   for (i in 1:N) {
     for (t in 1:T) {
       if (mask[i, t]) {
-        real back_t = death_time[i] - time_points[t];
-        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + back_t * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
+        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + (death_time[i] - t) * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
       }
     }
   }
@@ -140,7 +134,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -2, alpha12 = 0.02, alpha13 = -4, b = 0.5, c = 0.4, lambda0 = 0.03, gamma = 1.5, sigma_b = 1, sigma_u = 3, sigma_e = 3)
+  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -1.2, alpha12 = 0.02, alpha13 = -1.4, b = 0.5, c = 0.2, lambda0 = 0.04, gamma = 1.2, sigma_b = 1, sigma_u = 2, sigma_e = 3)
 }
 
 # Compile and sample from the Stan model
