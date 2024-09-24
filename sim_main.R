@@ -7,6 +7,7 @@ library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
+time_points <- seq(0, 12, by = 3)
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
@@ -34,6 +35,7 @@ data {
   vector[N] x1;  // binary covariate
   vector[N] x2;  // continuous covariate
   vector[N] treatment;
+  vector[T] time_points;
   matrix[N, T] y;  // longitudinal measurements
   matrix[N, T] mask;  // mask for missing values
   real<lower=0> survival_time[N];  // observed survival or censoring times
@@ -59,15 +61,14 @@ parameters {
   vector[N] z_b;  
   vector[K] z_u;
   vector<lower=0,upper=1>[N] U;
+  
 }
 transformed parameters {
   
-  vector[N] b_i = z_b * sigma_b; 
-  vector[K] u_i = z_u * sigma_u;
-  vector[N] death_time;
-  vector[N] F_C;
-  vector[N] U_adjusted;
   vector[N] eta;
+  vector[N] death_time;
+  vector[N]  b_i = z_b * sigma_b;
+  vector[K]  u_i = z_u * sigma_u;
   
   for (i in 1:N) {
     eta[i] = alpha11 * x1[i] + alpha12 * x2[i] + alpha13 * treatment[i] + c * u_i[cluster[i]] + b * b_i[i];
@@ -78,14 +79,13 @@ transformed parameters {
     if (status[i] == 1) {
       death_time[i] = survival_time[i];  // use observed death time for uncensored
     } else {
-      F_C[i] = 1 - exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma));
-      U_adjusted[i] = F_C[i] + U[i] * (1 - F_C[i]);
-      death_time[i] = pow(-log(1 - U_adjusted[i]) / (lambda0 * exp(eta[i])), 1 / gamma);
+      death_time[i] = pow(-log(exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma))-U[i] *exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma))) / (lambda0 * exp(eta[i])), 1 / gamma);
     }
   }
 }
 
 model {
+
   // Priors
   alpha00 ~ normal(0, 10);
   alpha01 ~ normal(0, 10);
@@ -102,18 +102,18 @@ model {
   sigma_u ~ normal(0, 10);
   sigma_e ~ normal(0, 10);
   lambda0 ~ inv_gamma(0.01, 0.01);
-  gamma ~ gamma(0.01, 0.01);
+  gamma ~ gamma(0.5, 0.5);
 
   z_b ~ normal(0, 1);
   z_u ~ normal(0, 1);
-  
   
 
   // Longitudinal model
   for (i in 1:N) {
     for (t in 1:T) {
-      if (mask[i, t]) {
-        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + (death_time[i] - t) * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
+      real backward_time = death_time[i] - time_points[t];
+      if (mask[i, t] > 0) {
+        y[i, t] ~ normal(alpha00 + x1[i] * alpha01 + x2[i] * alpha02 + backward_time * alpha03 + treatment[i] * alpha04 + b_i[i] + u_i[cluster[i]], sigma_e);
       }
     }
   }
@@ -134,11 +134,11 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -1.2, alpha12 = 0.02, alpha13 = -1.4, b = 0.5, c = 0.2, lambda0 = 0.04, gamma = 1.2, sigma_b = 1, sigma_u = 2, sigma_e = 3)
+  list(alpha00 = 10, alpha01 = 5, alpha02 = 0.3, alpha03 = 2, alpha04 = 10, alpha11 = -1, alpha12 = 0.05, b = 1, c = 1, lambda0 = 0.08, gamma = 1.1, sigma_b = 1, sigma_u = 1, sigma_e = 1)
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 4, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=4)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 4, control = list(adapt_delta = 0.99, max_treedepth = 10), cores=4)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
