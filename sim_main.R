@@ -139,7 +139,7 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 4, control = list(adapt_delta = 0.99, max_treedepth = 10), cores=4)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 4, control = list(adapt_delta = 0.999, max_treedepth = 15), cores=4)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
