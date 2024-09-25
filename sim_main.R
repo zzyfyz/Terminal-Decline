@@ -150,7 +150,7 @@ write.csv(fit_df, paste0("mod.result.",num,".csv"))
 pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to save the file in
     width = 4, # The width of the plot in inches
     height = 4) # The height of the plot in inches
-traceplot(fit, c("alpha00","alpha01","alpha02","alpha03","alpha04","alpha11","alpha12","alpha13","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e"))
+traceplot(fit, c("alpha00","alpha01","alpha02","alpha03","alpha04","alpha11","alpha12","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e"))
 dev.off()
 
 
