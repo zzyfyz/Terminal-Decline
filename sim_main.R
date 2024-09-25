@@ -15,6 +15,7 @@ stan_data <- list(
   T = length(grep("time_", names(final_data))),  # Number of time points
   cluster = final_data$cluster,  # Cluster indicator
   treatment = final_data$treatment,
+  time_points = time_points,
   x1 = final_data$x1,  # Binary covariate
   x2 = final_data$x2,  # Continuous covariate
   y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
