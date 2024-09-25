@@ -96,13 +96,13 @@ model {
   alpha11 ~ normal(0, 10);
   alpha12 ~ normal(0, 10);
 
-  b ~ normal(0, 10);
-  c ~ normal(0, 10);
+  b ~ normal(0, 1);
+  c ~ normal(0, 1);
 
   sigma_b ~ normal(0, 10);
   sigma_u ~ normal(0, 10);
   sigma_e ~ normal(0, 10);
-  lambda0 ~ inv_gamma(0.01, 0.01);
+  lambda0 ~ inv_gamma(2, 1);
   gamma ~ gamma(0.5, 0.5);
 
   z_b ~ normal(0, 1);
@@ -139,7 +139,7 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 4, control = list(adapt_delta = 0.999, max_treedepth = 15), cores=4)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 4000, warmup = 2000, chains = 4, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=4)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
