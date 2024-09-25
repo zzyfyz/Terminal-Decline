@@ -49,7 +49,7 @@ parameters {
   real alpha04;
   real alpha11;
   real alpha12;
-  real alpha13;
+
   real b;
   real c;
   real<lower=0> sigma_b;
@@ -71,7 +71,7 @@ transformed parameters {
   vector[K]  u_i = z_u * sigma_u;
   
   for (i in 1:N) {
-    eta[i] = alpha11 * x1[i] + alpha12 * x2[i] + alpha13 * treatment[i] + c * u_i[cluster[i]] + b * b_i[i];
+    eta[i] = alpha11 * x1[i] + alpha12 * x2[i] + c * u_i[cluster[i]] + b * b_i[i];
   }
    
   
@@ -94,7 +94,7 @@ model {
   alpha04 ~ normal(0, 10);
   alpha11 ~ normal(0, 10);
   alpha12 ~ normal(0, 10);
-  alpha13 ~ normal(0, 10);
+
   b ~ normal(0, 10);
   c ~ normal(0, 10);
 
