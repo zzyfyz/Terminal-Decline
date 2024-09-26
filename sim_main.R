@@ -66,13 +66,13 @@ parameters {
 }
 transformed parameters {
   
-  vector[N] eta;
+  vector[N] lambda;
   vector[N] death_time;
   vector[N]  b_i = z_b * sigma_b;
   vector[K]  u_i = z_u * sigma_u;
   
   for (i in 1:N) {
-    eta[i] = alpha11 * x1[i] + alpha12 * x2[i] + c * u_i[cluster[i]] + b * b_i[i];
+    lambda[i] = lambda0 * exp(alpha11 * x1[i] + alpha12 * x2[i] + c * u_i[cluster[i]] + b * b_i[i]);
   }
    
   
@@ -80,7 +80,7 @@ transformed parameters {
     if (status[i] == 1) {
       death_time[i] = survival_time[i];  // use observed death time for uncensored
     } else {
-      death_time[i] = pow(-log(exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma))-U[i] *exp(-(lambda0 * exp(eta[i])) * pow(survival_time[i], gamma))) / (lambda0 * exp(eta[i])), 1 / gamma);
+      death_time[i] = pow(-log(exp(-lambda[i] * pow(survival_time[i], gamma))-U[i] *exp(-lambda[i] * pow(survival_time[i], gamma))) / lambda[i], 1 / gamma);
     }
   }
 }
@@ -88,20 +88,20 @@ transformed parameters {
 model {
 
   // Priors
-  alpha00 ~ normal(0, 10);
-  alpha01 ~ normal(0, 10);
-  alpha02 ~ normal(0, 10);
-  alpha03 ~ normal(0, 10);
-  alpha04 ~ normal(0, 10);
-  alpha11 ~ normal(0, 10);
-  alpha12 ~ normal(0, 10);
+  alpha00 ~ normal(0, 5);
+  alpha01 ~ normal(0, 5);
+  alpha02 ~ normal(0, 5);
+  alpha03 ~ normal(0, 5);
+  alpha04 ~ normal(0, 5);
+  alpha11 ~ normal(0, 5);
+  alpha12 ~ normal(0, 5);
 
   b ~ normal(0, 1);
   c ~ normal(0, 1);
 
-  sigma_b ~ normal(0, 10);
-  sigma_u ~ normal(0, 10);
-  sigma_e ~ normal(0, 10);
+  sigma_b ~ normal(0, 5);
+  sigma_u ~ normal(0, 5);
+  sigma_e ~ normal(0, 5);
   lambda0 ~ inv_gamma(2, 1);
   gamma ~ gamma(0.5, 0.5);
 
@@ -124,10 +124,10 @@ model {
  for (i in 1:N) {
     if (status[i] == 1) {
       // Observed death time: use weibull exponential likelihood
-      target += log(lambda0) + log(gamma) + (gamma - 1) * log(death_time[i]) + eta[i] - lambda0 * exp(eta[i]) * death_time[i]^gamma;
+      target += log(lambda[i]) + log(gamma) + (gamma - 1) * log(death_time[i])  - lambda[i] * death_time[i]^gamma;
     } else {
       // Censored event: Weibull survival function
-      target += -lambda0 * exp(eta[i]) * survival_time[i]^gamma;
+      target += -lambda[i] * survival_time[i]^gamma;
     }
   }
 }
@@ -139,7 +139,7 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 3000, warmup = 1500, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 12), cores=2)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 4000, warmup = 2000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 14), cores=2)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
@@ -149,8 +149,8 @@ write.csv(fit_df, paste0("mod.result.",num,".csv"))
 
 
 pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to save the file in
-    width = 4, # The width of the plot in inches
-    height = 4) # The height of the plot in inches
+    width = 10, # The width of the plot in inches
+    height = 8) # The height of the plot in inches
 traceplot(fit, c("alpha00","alpha01","alpha02","alpha03","alpha04","alpha11","alpha12","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e"))
 dev.off()
 
