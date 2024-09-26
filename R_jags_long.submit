@@ -1,8 +1,8 @@
 +SingularityImage = "osdf:///ospool/ap40/data/jiayuan.shi/terminal.sif"
-executable        = sim_one_re.R
-arguments = sim0.data.$(Process).csv mask0.$(Process).csv
-transfer_input_files = sim0.data.$(Process).csv, mask0.$(Process).csv
-transfer_output_files = mod0.result.$(Process).csv, mod0.traceplot.$(Process).pdf
+executable        = sim_main.R
+arguments = sim.data.$(Process).csv mask.$(Process).csv
+transfer_input_files = sim.data.$(Process).csv, mask.$(Process).csv
+transfer_output_files = mod.result.$(Process).csv, mod.traceplot.$(Process).pdf
 
 log    = R.log.$(Cluster).$(Process)
 error  = R.err.$(Cluster).$(Process)
