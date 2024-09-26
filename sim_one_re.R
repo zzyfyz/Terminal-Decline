@@ -80,7 +80,7 @@ transformed parameters {
     if (status[i] == 1) {
       death_time[i] = survival_time[i];  // use observed death time for uncensored
     } else {
-      death_time[i] = pow(-log(exp(-lambda * pow(survival_time[i], gamma))-U[i] *exp(-lambda * pow(survival_time[i], gamma))) / lambda, 1 / gamma);
+      death_time[i] = pow(-log(exp(-lambda[i] * pow(survival_time[i], gamma))-U[i] *exp(-lambda[i] * pow(survival_time[i], gamma))) / lambda[i], 1 / gamma);
     }
   }
 }
@@ -122,10 +122,10 @@ model {
  for (i in 1:N) {
     if (status[i] == 1) {
       // Observed death time: use weibull exponential likelihood
-      target += log(lambda) + log(gamma) + (gamma - 1) * log(death_time[i])  - lambda * death_time[i]^gamma;
+      target += log(lambda[i]) + log(gamma) + (gamma - 1) * log(death_time[i])  - lambda[i] * death_time[i]^gamma;
     } else {
       // Censored event: Weibull survival function
-      target += -lambda * survival_time[i]^gamma;
+      target += -lambda[i] * survival_time[i]^gamma;
     }
   }
 }
