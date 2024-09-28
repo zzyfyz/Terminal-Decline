@@ -18,17 +18,17 @@ for (sim in 1:num_simulations) {
   alpha02 <- 0.3
   alpha03 <- 2 
   alpha04 <- 10 
-  alpha11 <- -1
+  alpha11 <- 1
   alpha12 <- 0.05 
   #alpha13 <- 2
   
-  b <- 1
+  b <- 0.03
   c <- 1
-  lambda0 <- 0.08
-  gamma <- 1.1
+  lambda0 <- 0.05
+  gamma <- 1.2
   sigma_u <- 1
-  sigma_b <- 1
-  sigma_e <- 1
+  sigma_b <- 8
+  sigma_e <- 3
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
@@ -36,7 +36,7 @@ for (sim in 1:num_simulations) {
   x2 <- x2-mean(x2)
   time_points <- seq(0,time, by=3)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
-  treatment_clusters <- sample(1:50, size = 25, replace = FALSE)
+  treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
   
   # Random effects
