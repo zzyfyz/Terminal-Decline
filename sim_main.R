@@ -42,12 +42,7 @@ data {
   real<lower=0> survival_time[N];  // observed survival or censoring times
   int<lower=0,upper=1> status[N];  // censoring indicator
 }
-transformed data {
-  vector<lower=0,upper=1>[N] U;
-  for (i in 1:N) {
-    U[i] = uniform_rng(0, 1);  // Generate U from uniform (0, 1)
-  }
-}
+
 parameters {
   real alpha00;
   real alpha01;
@@ -67,6 +62,7 @@ parameters {
   
   vector[N] z_b;  
   vector[K] z_u;
+  vector<lower=0,upper=1>[N] U
   
 }
 transformed parameters {
@@ -112,6 +108,7 @@ model {
 
   z_b ~ normal(0, 1);
   z_u ~ normal(0, 1);
+  U ~ uniform(0,1);
   
 
   // Longitudinal model
@@ -144,7 +141,7 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 5000, warmup = 2500, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 14), cores=2)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 4000, warmup = 2000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
