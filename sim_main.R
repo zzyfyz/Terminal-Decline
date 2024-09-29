@@ -62,7 +62,7 @@ parameters {
   
   vector[N] z_b;  
   vector[K] z_u;
-  vector<lower=0,upper=1>[N] U
+  vector<lower=0,upper=1>[N] U;
   
 }
 transformed parameters {
