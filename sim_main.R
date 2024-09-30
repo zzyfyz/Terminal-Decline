@@ -20,7 +20,7 @@ stan_data <- list(
   x2 = final_data$x2,  # Continuous covariate
   y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
   mask = mask,  # Mask for missing values
-  survival_time = final_data$time,  # Survival times
+  survival_time = final_data$observed_time,  # Survival times
   status = final_data$status  # Censoring indicator
 )
 
