@@ -103,8 +103,8 @@ model {
   sigma_b ~ normal(0, 5);
   sigma_u ~ normal(0, 5);
   sigma_e ~ normal(0, 5);
-  lambda0 ~ inv_gamma(2, 1);
-  gamma ~ gamma(0.5, 0.5);
+  lambda0 ~ inv_gamma(0.01, 0.01);
+  gamma ~ gamma(0.01, 0.01);
 
   z_b ~ normal(0, 1);
   z_u ~ normal(0, 1);
