@@ -9,8 +9,8 @@ num_simulations <- 100
 for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
   # Parameters
-  cluster <- 50
-  cluster_subj <- 20
+  cluster <- 20
+  cluster_subj <- 50
   n <- cluster * cluster_subj
   time <- 12
   alpha00 <- 10
