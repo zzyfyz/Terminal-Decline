@@ -89,20 +89,20 @@ transformed parameters {
 model {
 
   // Priors
-  alpha00 ~ normal(0, 5);
-  alpha01 ~ normal(0, 5);
-  alpha02 ~ normal(0, 5);
-  alpha03 ~ normal(0, 5);
-  alpha04 ~ normal(0, 5);
-  alpha11 ~ normal(0, 5);
-  alpha12 ~ normal(0, 5);
+  alpha00 ~ normal(0, 10);
+  alpha01 ~ normal(0, 10);
+  alpha02 ~ normal(0, 10);
+  alpha03 ~ normal(0, 10);
+  alpha04 ~ normal(0, 10);
+  alpha11 ~ normal(0, 10);
+  alpha12 ~ normal(0, 10);
 
-  b ~ normal(0, 1);
-  c ~ normal(0, 1);
+  b ~ normal(0, 10);
+  c ~ normal(0, 10);
 
-  sigma_b ~ normal(0, 5);
-  sigma_u ~ normal(0, 5);
-  sigma_e ~ normal(0, 5);
+  sigma_b ~ normal(0, 10);
+  sigma_u ~ normal(0, 10);
+  sigma_e ~ normal(0, 10);
   lambda0 ~ inv_gamma(0.01, 0.01);
   gamma ~ gamma(0.01, 0.01);
 
