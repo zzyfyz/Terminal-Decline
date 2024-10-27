@@ -97,8 +97,8 @@ model {
   alpha11 ~ normal(0, 10);
   alpha12 ~ normal(0, 10);
 
-  b ~ normal(0, 5);
-  c ~ normal(0, 5);
+  b ~ normal(0, 1);
+  c ~ normal(0, 1);
 
   sigma_b ~ normal(0, 10);
   sigma_u ~ normal(0, 10);
@@ -141,7 +141,7 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 3000, warmup = 1500, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 4000, warmup = 2000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
