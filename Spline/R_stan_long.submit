@@ -1,5 +1,5 @@
 +SingularityImage = "osdf:///ospool/ap40/data/jiayuan.shi/terminal.sif"
-executable        = Main.Spline.R
+executable        = Main_Spline.R
 arguments = sim.data.$(Process).csv mask.$(Process).csv
 transfer_input_files = sim.data.$(Process).csv, mask.$(Process).csv
 transfer_output_files = mod.result.$(Process).csv, mod.traceplot.$(Process).pdf
