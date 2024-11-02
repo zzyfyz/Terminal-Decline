@@ -2,7 +2,7 @@ library(MASS)
 library(survival)
 library(tidyr)
 library(dplyr)
-dirg <- "C:/Users/feiyi/OneDrive/Desktop/Katie/Terminal-Decline/Spline/Data"
+dirg <- "C:/Users/feiyi/OneDrive/Desktop/Katie/Terminal-Decline/Spline"
 setwd(dirg)
 num_simulations <- 1
 # Simulation loop
