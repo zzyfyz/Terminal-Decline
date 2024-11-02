@@ -251,10 +251,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 5, alpha02 = 0.3, alpha11 = -1, alpha12 = 0.05,sigma_e = 3,
-       U = runif(n, 0, 1), 
-       a_raw_backward = rnorm(6, 0, 1),  
-       a_raw_treatment = rnorm(6, 0, 1), 
+  list(alpha01 = 5, alpha02 = 0.3, alpha11 = -1, alpha12 = 0.05,sigma_e = 3, 
        tau_backward = 1,
        tau_treatment = 1)
 }
