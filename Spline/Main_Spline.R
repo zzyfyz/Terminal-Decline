@@ -25,7 +25,8 @@ backward_time_vector <- unlist(backward_time_list)
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
 num_knots <- 2
-knots <- unname(quantile(backward_time_vector, probs = seq(from = 0.01, to = 0.99, length.out = num_knots)))
+quan_len<-seq(from=0,to=1,length.out = num_knots+2)
+knots<-as.numeric(quantile(backward_time_vector,quan_len))
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
@@ -41,66 +42,31 @@ stan_data <- list(
   survival_time = final_data$observed_time,  # Survival times
   status = final_data$status,  # Censoring indicator
   num_knots = num_knots,
-  knots = knots,
-  spline_degree = 3
+  knots = knots
 )
 
 
-
-# Compile the Stan model once
 stan_model_code <- "
-functions {
-  vector build_b_spline(real[] t, real[] ext_knots, int ind, int order) {
-    vector[size(t)] b_spline;
-    vector[size(t)] w1 = rep_vector(0, size(t));
-    vector[size(t)] w2 = rep_vector(0, size(t));
-    if (order == 1) {
-      for (i in 1:size(t)) {
-        b_spline[i] = (ext_knots[ind] <= t[i]) && (t[i] < ext_knots[ind + 1]);
-      }
-    } else {
-      if (ext_knots[ind] != ext_knots[ind + order - 1]) {
-        w1 = (to_vector(t) - rep_vector(ext_knots[ind], size(t))) /
-             (ext_knots[ind + order - 1] - ext_knots[ind]);
-      }
-      if (ext_knots[ind + 1] != ext_knots[ind + order]) {
-        w2 = 1 - (to_vector(t) - rep_vector(ext_knots[ind + 1], size(t))) /
-                 (ext_knots[ind + order] - ext_knots[ind + 1]);
-      }
-      b_spline = w1 .* build_b_spline(t, ext_knots, ind, order - 1) +
-                 w2 .* build_b_spline(t, ext_knots, ind + 1, order - 1);
-    }
-    return b_spline;
-  }
-}
-
 data {
-  int<lower=0> N;  // total number of subjects
-  int<lower=0> K;  // number of clusters
-  int<lower=0> T;  // number of time points
-  int<lower=1,upper=K> cluster[N];  // cluster indicator
-  vector[N] x1;  // binary covariate
-  vector[N] x2;  // continuous covariate
+  int<lower=0> N;  
+  int<lower=0> K;  
+  int<lower=0> T;  
+  int<lower=1,upper=K> cluster[N];  
+  vector[N] x1;  
+  vector[N] x2;  
   vector[N] treatment;
   row_vector[T] time_points;
-  matrix[N, T] Y;  // longitudinal measurements
-  matrix[N, T] MASK;  // mask for missing values
-  vector[N] survival_time;  // observed survival or censoring times
-  int<lower=0,upper=1> status[N];  // censoring indicator
-  int num_knots;  // number of internal knots for the splines
-  vector[num_knots] knots;  // sequence of knots
-  int spline_degree;  // degree of the splines (order - 1)
+  matrix[N, T] Y;  
+  matrix[N, T] MASK;  
+  vector[N] survival_time;  
+  int<lower=0,upper=1> status[N];  
+  int num_knots;
+  vector[num_knots+2] knots;  
 }
 
 transformed data {
-  matrix[N, T] X1 = rep_matrix(x1, T);
-  matrix[N, T] X2 = rep_matrix(x2, T);
-  matrix[N, T] TRT = rep_matrix(treatment, T);
-  
-  int num_basis = num_knots + spline_degree + 1;  // total number of B-splines
-  
-  int non_missing_count = 0;  // Count of non-missing values
-  
+  // Count the total number of non-missing values
+  int non_missing_count = 0;
   for (i in 1:N) {
     for (t in 1:T) {
       if (MASK[i, t] > 0) {
@@ -109,151 +75,137 @@ transformed data {
     }
   }
   
-  vector[non_missing_count] Y_non_missing;  // Vector to store non-missing values
-  int non_missing_indices[non_missing_count, 2];  // Store (subject, time) pairs of non-missing values
-  int index = 1;  // Counter for non-missing values
-
-// Extract non-missing values and their indices
+  // Store indices of non-missing values
+  int non_missing_indices[non_missing_count, 2];
+  int index = 1;
   for (i in 1:N) {
     for (t in 1:T) {
       if (MASK[i, t] > 0) {
-        Y_non_missing[index] = Y[i, t];  // Extract non-missing values
-        non_missing_indices[index, 1] = i;  // Store the subject index
-        non_missing_indices[index, 2] = t;  // Store the time index
+        non_missing_indices[index, 1] = i;
+        non_missing_indices[index, 2] = t;
         index += 1;
       }
     }
   }
-
 }
 
 parameters {
-
   real alpha01;
   real alpha02;
   real alpha11;
   real alpha12;
-
-
+  real b;
+  real c;
+  real<lower=0> sigma_b;
+  real<lower=0> sigma_u;
   real<lower=0> sigma_e;
-
-
-  row_vector[num_basis] a_raw_backward;  // Raw spline coefficients for backward time
-  row_vector[num_basis] a_raw_treatment;  // Raw spline coefficients for treatment effect
-  real<lower=0> tau_backward;  // Step size for the random walk (backward time)
-  real<lower=0> tau_treatment;  // Step size for the random walk (treatment effect)
-
-
+  real<lower=0> lambda0;
+  real<lower=0> gamma;
+  vector[N] z_b;
+  vector[K] z_u;
   vector<lower=0, upper=1>[N] U;
+  vector[num_knots+1] beta_piecewise_0; 
+  vector[num_knots+1] beta_piecewise_1; 
 }
+
 
 transformed parameters {
   vector[N] lambda;
   vector[N] death_time;
+  vector[N] b_i = z_b * sigma_b;
+  vector[K] u_i = z_u * sigma_u;
+  matrix[non_missing_count, num_knots+1] piecewise_matrix;
+  vector[non_missing_count] MU_non_missing;
 
-  vector[non_missing_count] backward_times_non_missing;  // Only non-missing backward times
-  matrix[num_basis, non_missing_count] B;  
-  vector[non_missing_count] spline_contribution_backward;
-  vector[non_missing_count] spline_contribution_treatment;
-
-  row_vector[num_basis] a_backward; 
-  row_vector[num_basis] a_treatment; 
-
-
-  matrix[N, T] MU;
-
-
-  a_backward = a_raw_backward*tau_backward;
-  a_treatment = a_raw_treatment*tau_treatment;
-  
-  
-  
-  lambda = 0.03 * exp(alpha11 * x1 + alpha12 * x2 );
+  lambda = lambda0 * exp(alpha11 * x1 + alpha12 * x2 + b * b_i + c * u_i[cluster]);
 
   for (i in 1:N) {
     if (status[i] == 1) {
-      death_time[i] = survival_time[i];  // use observed death time for uncensored
+      death_time[i] = survival_time[i];  // Observed death time
     } else {
-      death_time[i] = pow(-log(exp(-lambda[i] * pow(survival_time[i], 1.8)) - U[i] * exp(-lambda[i] * pow(survival_time[i], 1.8))) / lambda[i], 1 / 1.8);
+      death_time[i] = pow(-log(exp(-lambda[i] * pow(survival_time[i], gamma)) - U[i] * exp(-lambda[i] * pow(survival_time[i], gamma))) / lambda[i], 1 / gamma);
     }
   }
 
-  vector[spline_degree + num_knots + 1] ext_knots_temp;
-  vector[2 * spline_degree + num_knots + 2] ext_knots;  // extended knots
+  // Determine maximum death time across all subjects
+  real max_death_time = max(death_time);
 
-  // Generate extended knots
-  ext_knots_temp = append_row(rep_vector(min(death_time), spline_degree+1), knots);
-  ext_knots = append_row(ext_knots_temp, rep_vector(max(death_time), spline_degree+1));
+  // Extend knots to include the maximum death time
+  vector[num_knots + 2] extended_knots;
+  for (k in 2:num_knots+1) {
+    extended_knots[k] = knots[k];
+  }
+  extended_knots[1] = 0;
+  extended_knots[num_knots + 2] = max_death_time;
 
-  // Calculate backward times for non-missing values
+  // Calculate piecewise matrix based on death_time for non-missing values only
   for (ind in 1:non_missing_count) {
-    int subj = non_missing_indices[ind, 1];
-    int time_idx = non_missing_indices[ind, 2];
-    backward_times_non_missing[ind] = death_time[subj] - time_points[time_idx];
+    int i = non_missing_indices[ind, 1];
+    int t = non_missing_indices[ind, 2];
+    real backward_time = death_time[i] - time_points[t];
+    for (k in 1:num_knots+1) {
+      if (backward_time > extended_knots[k] && backward_time <= extended_knots[k + 1]) {
+        piecewise_matrix[ind, k] = backward_time - extended_knots[k];
+      } else if (backward_time > extended_knots[k + 1]) {
+        piecewise_matrix[ind, k] = extended_knots[k + 1] - extended_knots[k];
+      } else {
+        piecewise_matrix[ind, k] = 0;
+      }
+    }
   }
-  
-  // Calculate spline contributions for non-missing values
-  for (ind in 1:num_basis) {
-    B[ind, :] = to_row_vector(build_b_spline(to_array_1d(backward_times_non_missing), to_array_1d(ext_knots), ind, spline_degree + 1));
-  }
-  
 
-  spline_contribution_backward = to_vector(a_backward * B);
-  spline_contribution_treatment = to_vector(a_treatment * B);
-  
-  MU = rep_matrix(0, N, T);
-  
+  // Calculate MU for non-missing values
   for (ind in 1:non_missing_count) {
-    int subj = non_missing_indices[ind, 1];
-    int time_idx = non_missing_indices[ind, 2];
-    MU[subj, time_idx] = X1[subj, time_idx] * alpha01 + X2[subj, time_idx] * alpha02 + spline_contribution_backward[ind] + TRT[subj, time_idx] * spline_contribution_treatment[ind];
-    
+    int i = non_missing_indices[ind, 1];
+    MU_non_missing[ind] = alpha01 * x1[i] + alpha02 * x2[i] + dot_product(piecewise_matrix[ind, ], beta_piecewise_0) +
+                          treatment[i] * dot_product(piecewise_matrix[ind, ], beta_piecewise_1) +
+                          b_i[i] + u_i[cluster[i]];
   }
-  
-  
-
 }
 
 model {
-  // Priors
   alpha01 ~ normal(0, 5);
   alpha02 ~ normal(0, 5);
   alpha11 ~ normal(0, 5);
   alpha12 ~ normal(0, 5);
-
-
-
+  b ~ normal(0, 1);
+  c ~ normal(0, 1);
+  sigma_b ~ normal(0, 5);
+  sigma_u ~ normal(0, 5);
   sigma_e ~ normal(0, 5);
-  
-  tau_backward ~ normal(0, 1);
-  tau_treatment ~ normal(0, 1);
-  a_raw_backward ~ normal(0, 1);
-  a_raw_treatment ~ normal(0, 1);
-
-
+  lambda0 ~ inv_gamma(2, 1);
+  gamma ~ gamma(0.5, 0.5);
+  z_b ~ normal(0, 1);
+  z_u ~ normal(0, 1);
   U ~ uniform(0, 1);
+  beta_piecewise_0 ~ normal(0, 5); 
+  beta_piecewise_1 ~ normal(0, 5); 
 
-  // Longitudinal model
-   for (i in 1:N) {
-    for (t in 1:T) {
-      if (MASK[i, t] > 0) {
-        Y[i, t] ~ normal(MU[i, t], sigma_e);
-      }
+  // Longitudinal likelihood for non-missing values
+  for (ind in 1:non_missing_count) {
+    Y[non_missing_indices[ind, 1], non_missing_indices[ind, 2]] ~ normal(MU_non_missing[ind], sigma_e);
+  }
+
+  // Survival likelihood
+  for (i in 1:N) {
+    if (status[i] == 1) {
+      target += weibull_lpdf(survival_time[i] | gamma, pow(lambda[i], -1 / gamma));
+    } else {
+      target += weibull_lccdf(survival_time[i] | gamma, pow(lambda[i], -1 / gamma));
     }
-   }
-  
-
+  }
 }
-
-
 "
 
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 5, alpha02 = 0.3, alpha11 = -1, alpha12 = 0.05,sigma_e = 3, 
-       tau_backward = 1,
-       tau_treatment = 1)
+  list(alpha01 = 5, alpha02 = 0.3, alpha11 = -1, alpha12 = 0.05,b = 0.03, c = 0.05, sigma_u = 5, sigma_b = 8, sigma_e = 3, lambda0 = 0.03, gamma = 1.8,
+       z_b = rnorm(n, 0, 1),
+       z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
+       U = runif(n, 0, 1), 
+       beta_piecewise_0 = rnorm(3, 0, 1),  
+       beta_piecewise_1 = rnorm(3, 0, 1))
 }
 
 # Compile and sample from the Stan model
@@ -269,7 +221,7 @@ write.csv(fit_df, paste0("mod.result.",num,".csv"))
 pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to save the file in
     width = 10, # The width of the plot in inches
     height = 8) # The height of the plot in inches
-traceplot(fit, c("alpha01","alpha02","alpha11","alpha12","sigma_e"))
+traceplot(fit, c("alpha01","alpha02","alpha11","alpha12","b","c","sigma_u","sigma_b", "sigma_e"))
 dev.off()
 
 

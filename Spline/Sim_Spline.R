@@ -49,7 +49,7 @@ for (sim in 1:num_simulations) {
   epsiloni <- mvrnorm(n, mu = rep(0, time), Sigma = diag(sigma_e*sigma_e, time))
   
   # Cox frailty model for survival data assuming Weibull distribution
-  linear <- alpha11 * x1 + alpha12 * x2
+  linear <- alpha11 * x1 + alpha12 * x2 + b * bi + c * ui[subject_cluster]
   lambda <- lambda0 * exp(linear)
   U <- runif(n)
   
@@ -71,7 +71,7 @@ for (sim in 1:num_simulations) {
           (alpha03 / (1 + alpha04 * backward_time)) + 
           treatment[i] * alpha05 * exp(alpha06 * backward_time + alpha07) + 
           alpha01 * x1[i] + alpha02 * x2[i] + 
-          epsiloni[i, ind]
+          bi[i] + ui[subject_cluster[i]] + epsiloni[i, ind]
       } else {
         measurement <- NA
       }
