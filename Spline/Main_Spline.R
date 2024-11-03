@@ -201,9 +201,9 @@ stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
   list(alpha01 = 5, alpha02 = 0.3, alpha11 = -1, alpha12 = 0.05,b = 0.03, c = 0.05, sigma_u = 5, sigma_b = 8, sigma_e = 3, lambda0 = 0.03, gamma = 1.8,
-       z_b = rnorm(n, 0, 1),
+       z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
-       U = runif(n, 0, 1), 
+       U = runif(nrow(final_data), 0, 1), 
        beta_piecewise_0 = rnorm(3, 0, 1),  
        beta_piecewise_1 = rnorm(3, 0, 1))
 }
