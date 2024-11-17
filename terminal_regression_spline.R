@@ -1,13 +1,103 @@
-#!/usr/bin/env Rscript
-library(MASS)
-library(survival)
-library(tidyr)
 library(dplyr)
 library(rstan)
+library(parallel)
+library(splines2)
+library(lme4)
+library(ggplot2)
 
-mask <- as.matrix(read.csv(list.files(pattern="mask.")))
-final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
-time_points <- seq(1,6, by=1)
+set.seed(999)  
+# Parameters
+cluster <- 50
+cluster_subj <- 20
+n <- cluster * cluster_subj
+time <- 6
+alpha00 <- 30
+alpha01 <- 1
+alpha02 <- 0.9
+alpha03 <- -30
+alpha04 <- 0.2 
+alpha05 <- 30 
+alpha06 <- -0.23 
+alpha07 <- -0.92 
+
+alpha11 <- 0.2
+alpha12 <- -0.01
+#alpha13 <- 2
+
+b <- 0.03
+c <- 0.02
+lambda0 <- 0.05
+gamma <- 2.2
+sigma_u <- 5
+sigma_b <- 6
+sigma_e <- 4
+
+# Fixed effects covariates
+x1 <- rbinom(n, 1, 0.5)
+x2 <- runif(n, 100, 150)
+time_points <- seq(1,time, by=1)
+subject_cluster <- rep(1:cluster, each = cluster_subj)
+treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
+treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
+
+# Random effects
+ui <- rnorm(cluster, mean = 0, sd = sigma_u)
+bi <- rnorm(n, mean = 0, sd = sigma_b)
+epsiloni <- mvrnorm(n, mu = rep(0, time), Sigma = diag(sigma_e*sigma_e, time))
+
+# Cox frailty model for survival data assuming Weibull distribution
+linear <- alpha11 * x1 + alpha12 * x2 + b * bi + c * ui[subject_cluster]
+lambda <- lambda0 * exp(linear)
+U <- runif(n)
+
+# Simulate survival times
+survival_times <- (-log(U) / lambda)^(1 / gamma)
+censoring_times <- time
+observed_times <- pmin(survival_times, censoring_times)
+status <- as.numeric(survival_times <= censoring_times)
+
+# Mixed model for longitudinal data, modeling backward from death
+longitudinal_data <- data.frame()
+
+for (i in 1:n) {
+  for (ind in seq_along(time_points)) {
+    t <- time_points[ind]
+    backward_time <- survival_times[i] - t
+    if (backward_time > 0) {
+      measurement <- alpha00 +
+        (alpha03 / (1 + alpha04 * backward_time)) + 
+        treatment[i] * alpha05 * exp(alpha06 * backward_time + alpha07) + 
+        alpha01 * x1[i] + alpha02 * x2[i] + 
+        bi[i] + ui[subject_cluster[i]] + epsiloni[i, ind]
+    } else {
+      measurement <- NA
+    }
+    longitudinal_data <- rbind(longitudinal_data, data.frame(subject = i, time = t, measurement = measurement))
+  }
+}
+
+# Join the longitudinal and survival data
+longitudinal_data <- longitudinal_data %>%
+  left_join(data.frame(subject = 1:n, observed_time = observed_times), by = "subject") %>%
+  mutate(measurement = ifelse(time > observed_time, NA, measurement)) %>%
+  select(-observed_time)
+
+# Create a mask for the missing data
+longitudinal_data_wide <- longitudinal_data %>%
+  pivot_wider(names_from = time, values_from = measurement, names_prefix = "time_")
+
+# Create a mask to indicate missing values
+mask <- !is.na(as.matrix(longitudinal_data_wide[, grep("time_", colnames(longitudinal_data_wide))]))
+
+# Replace NA values with 0 in the longitudinal data
+longitudinal_data_wide[is.na(longitudinal_data_wide)] <- 0
+
+# Add covariates and survival data to the final dataset without generating duplicates
+final_data <- longitudinal_data_wide %>%
+  left_join(
+    data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, observed_time = observed_times, survival_time = survival_times, status = status),
+    by = "subject"
+  )
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
@@ -28,6 +118,8 @@ backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 num_knots <- 8  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
+#lb <- min(backward_time_vector)
+#ub <- max(backward_time_vector)
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
@@ -279,19 +371,51 @@ init_fn <- function() {
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2500, warmup = 1000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2, refresh=100)
-
-result <- summary(fit)
-fit_df <- as.data.frame(result$summary)
-text <- list.files(pattern="sim.data.")
-num <- unlist(lapply(strsplit(text,'.',fixed=TRUE),function(x) x[[3]]))
-write.csv(fit_df, paste0("mod.result.",num,".csv"))
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2000, warmup = 1000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2, refresh=100)
 
 
-pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to save the file in
-    width = 10, # The width of the plot in inches
-    height = 8) # The height of the plot in inches
-traceplot(fit, c("alpha01","alpha02","alpha11","alpha12","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e","a_backward","a_treatment"))
-dev.off()
+print(fit)  
+
+traceplot(fit, c("alpha01"))
 
 
+# Extract posterior samples
+post_samples <- extract(fit)
+
+
+backward <- posterior_samples$spline_contribution_backward
+treatment<- posterior_samples$spline_contribution_treatment
+
+mean_backward <- apply(backward, 2, mean)
+mean_treatment <- apply(treatment, 2, mean)
+
+true_values <- final_data %>%
+  tidyr::pivot_longer(cols = starts_with("time_"), names_to = "timepoint", values_to = "measurement") %>%
+  mutate(
+    timepoint = as.numeric(gsub("time_", "", timepoint)),
+    backward_time = survival_time - timepoint,
+    True_Backward = alpha00 - (alpha03 / (1 + alpha04 * backward_time)),
+    True_Treatment = alpha05 * exp(alpha06 * backward_time + alpha07)
+  )
+
+true_values <- true_values %>%
+  mutate(
+    Estimated_Backward = mean_backward,
+    Estimated_Treatment = mean_treatment
+  )
+
+
+ggplot(true_values, aes(x = backward_time)) +
+  geom_line(aes(y = True_Backward, color = "True Backward"), linetype = "dashed") +
+  geom_line(aes(y = Estimated_Backward, color = "Estimated Backward"), alpha = 0.7) +
+  labs(title = "True vs Estimated Spline Contribution (Backward)", x = "Backward Time", y = "Value") +
+  scale_color_manual(values = c("True Backward" = "blue", "Estimated Backward" = "red")) +
+  theme_minimal()
+
+# Plot the true vs estimated values for treatment spline contribution
+ggplot(true_values, aes(x = backward_time)) +
+  geom_line(aes(y = True_Treatment, color = "True Treatment"), linetype = "dashed") +
+  geom_line(aes(y = Estimated_Treatment, color = "Estimated Treatment"), alpha = 0.7) +
+  labs(title = "True vs Estimated Spline Contribution (Treatment)", x = "Backward Time", y = "Value") +
+  scale_color_manual(values = c("True Treatment" = "green", "Estimated Treatment" = "orange")) +
+  theme_minimal()
