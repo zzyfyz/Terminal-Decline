@@ -274,8 +274,8 @@ init_fn <- function() {
        z_b = rnorm(n, 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(n, 0, 1), 
-       a_backward = rnorm(length(knots)+degree+1, 0, 1),  
-       a_treatment = rnorm(length(knots)+degree+1, 0, 1))
+       a_backward = rnorm(10, 0, 1),  
+       a_treatment = rnorm(10, 0, 1))
 }
 
 # Compile and sample from the Stan model
