@@ -25,9 +25,11 @@ backward_time_vector <- unlist(backward_time_list)
 #Remove NA values from the vector
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
-num_knots <- 4  ##this is the number of internal knots
+num_knots <- 9  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
+#lb <- min(backward_time_vector)
+#ub <- max(backward_time_vector)
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
@@ -148,8 +150,10 @@ parameters {
 
   row_vector[num_basis] a_backward;  // Raw spline coefficients for backward time
   row_vector[num_basis] a_treatment;  // Raw spline coefficients for treatment effect
+  real<lower=0> sigma_rw2_backward; 
+  real<lower=0> sigma_rw2_treatment; 
   
-
+  
   vector[N] z_b;
   vector[K] z_u;
   vector<lower=0, upper=1>[N] U;
@@ -169,8 +173,7 @@ transformed parameters {
   matrix[N, T] BI = rep_matrix(b_i, T);
   matrix[N, T] UI;
   matrix[N, T] MU;
-  
-  
+
   lambda = lambda0 * exp(alpha11 * x1 + alpha12 * x2 + b * b_i + c * u_i[cluster]);
 
   for (i in 1:N) {
@@ -214,7 +217,6 @@ transformed parameters {
     
   }
   
-  
 
 }
 
@@ -231,15 +233,26 @@ model {
   sigma_b ~ normal(0, 5);
   sigma_u ~ normal(0, 5);
   sigma_e ~ normal(0, 5);
-  lambda0 ~ inv_gamma(2, 1);
+  lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
-  a_backward ~ normal(0, 15);
-  a_treatment ~ normal(0, 15);
+  a_backward[1] ~ normal(0, 10);
+  a_backward[2] ~ normal(0, 10);
+  a_treatment[1] ~ normal(0, 10);
+  a_treatment[2] ~ normal(0, 10);
+  sigma_rw2_backward ~ inv_gamma(0.01, 0.01);
+  sigma_rw2_treatment ~ inv_gamma(0.01, 0.01);
+
 
   z_b ~ normal(0, 1);
   z_u ~ normal(0, 1);
   U ~ uniform(0, 1);
+  
+  for (i in 3:num_basis) {
+    a_backward[i] ~ normal(2 * a_backward[i - 1] - a_backward[i - 2], sqrt(sigma_rw2_backward));
+    a_treatment[i] ~ normal(2 * a_treatment[i - 1] - a_treatment[i - 2], sqrt(sigma_rw2_treatment));
+  }
+  
 
   // Longitudinal model
    for (i in 1:N) {
@@ -270,16 +283,18 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 1, alpha02 = 0.9, alpha11 = 0.2, alpha12 = -0.01,b = 0.03, c = 0.02, sigma_u = 5, sigma_b = 6, sigma_e = 4, lambda0 = 0.05, gamma = 2.2,
-       z_b = rep(0, nrow(final_data)),
-       z_u = rep(0, length(unique(final_data$cluster))),  
-       U = rep(0.5, nrow(final_data)), 
-       a_backward = rep(0, 6),  
-       a_treatment = rep(0, 6))
+  list(alpha01 = 1, alpha02 = 1.9, alpha11 = 0.2, alpha12 = -0.01,b = 0.03, c = 0.02, sigma_u = 5, sigma_b = 6, sigma_e = 4, lambda0 = 0.05, gamma = 2.2,
+       z_b = rnorm(n, 0, 1),
+       z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
+       U = runif(n, 0, 1), 
+       a_backward = rnorm(length(knots)+degree+1, 0, 10),  
+       a_treatment = rnorm(length(knots)+degree+1, 0, 10),
+       sigma_rw2_backward = 1,
+       sigma_rw2_treatment = 1)
 }
 
 # Compile and sample from the Stan model
-fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2500, warmup = 1000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores=2, refresh=100)
+fit <- sampling(stan_model, data = stan_data, init = init_fn, iter = 2500, warmup = 1000, chains = 2, control = list(adapt_delta = 0.99, max_treedepth = 15), cores = 2, refresh=100)
 
 result <- summary(fit)
 fit_df <- as.data.frame(result$summary)
