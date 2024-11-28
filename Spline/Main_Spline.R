@@ -284,9 +284,9 @@ stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
   list(alpha01 = 1, alpha02 = 1.9, alpha11 = 0.2, alpha12 = -0.01,b = 0.03, c = 0.02, sigma_u = 5, sigma_b = 6, sigma_e = 4, lambda0 = 0.05, gamma = 2.2,
-       z_b = rnorm(n, 0, 1),
+       z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
-       U = runif(n, 0, 1), 
+       U = runif(nrow(final_data), 0, 1), 
        a_backward = rnorm(length(knots)+degree+1, 0, 10),  
        a_treatment = rnorm(length(knots)+degree+1, 0, 10),
        sigma_rw2_backward = 1,
