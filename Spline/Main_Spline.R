@@ -25,7 +25,7 @@ backward_time_vector <- unlist(backward_time_list)
 #Remove NA values from the vector
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
-num_knots <- 9  ##this is the number of internal knots
+num_knots <- 5  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
 #lb <- min(backward_time_vector)
