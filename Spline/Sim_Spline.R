@@ -2,9 +2,9 @@ library(MASS)
 library(survival)
 library(tidyr)
 library(dplyr)
-dirg <- "C:/Users/feiyi/OneDrive/Desktop/Katie/Terminal-Decline/Spline"
+dirg <- "C:/Yizhou/Term/Terminal-Decline/Spline"
 setwd(dirg)
-num_simulations <- 1
+num_simulations <- 200
 # Simulation loop
 for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
@@ -12,33 +12,32 @@ for (sim in 1:num_simulations) {
   cluster <- 20
   cluster_subj <- 50
   n <- cluster * cluster_subj
-  time <- 12
-  alpha00 <- 140
-  alpha01 <- 5
-  alpha02 <- 0.3
-  alpha03 <- 30 
+  time <- 6
+  alpha00 <- 30
+  alpha01 <- 1
+  alpha02 <- 1.6
+  alpha03 <- -30
   alpha04 <- 0.2 
   alpha05 <- 30 
   alpha06 <- -0.23 
   alpha07 <- -0.92 
   
-  alpha11 <- -1
-  alpha12 <- 0.05 
+  alpha11 <- 0.2
+  alpha12 <- -0.01
   #alpha13 <- 2
   
   b <- 0.03
-  c <- 0.05
-  lambda0 <- 0.03
-  gamma <- 1.8
+  c <- 0.02
+  lambda0 <- 0.05
+  gamma <- 2.2
   sigma_u <- 5
-  sigma_b <- 8
-  sigma_e <- 3
+  sigma_b <- 6
+  sigma_e <- 4
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
-  x2 <- rnorm(n, mean = 70, sd = 10)
-  x2 <- x2-mean(x2)
-  time_points <- seq(0,time, by=3)
+  x2 <- rnorm(n,70,5)
+  time_points <- seq(1,time, by=1)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
@@ -67,7 +66,7 @@ for (sim in 1:num_simulations) {
       t <- time_points[ind]
       backward_time <- survival_times[i] - t
       if (backward_time > 0) {
-        measurement <- alpha00 - 
+        measurement <- alpha00 +
           (alpha03 / (1 + alpha04 * backward_time)) + 
           treatment[i] * alpha05 * exp(alpha06 * backward_time + alpha07) + 
           alpha01 * x1[i] + alpha02 * x2[i] + 
@@ -89,13 +88,13 @@ for (sim in 1:num_simulations) {
   longitudinal_data_wide <- longitudinal_data %>%
     pivot_wider(names_from = time, values_from = measurement, names_prefix = "time_")
   
-  
   # Add covariates and survival data to the final dataset without generating duplicates
   final_data <- longitudinal_data_wide %>%
     left_join(
       data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, observed_time = observed_times, survival_time = survival_times, status = status),
       by = "subject"
     )
+  
   # Create a mask for missing data
   measurement_columns <- grep("time_", names(longitudinal_data_wide), value = TRUE)
   mask <- !is.na(as.matrix(longitudinal_data_wide[, measurement_columns]))
@@ -110,4 +109,3 @@ for (sim in 1:num_simulations) {
   write.csv(final_data, file = filename, row.names = FALSE)
   
 }
-
