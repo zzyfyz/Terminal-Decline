@@ -2,9 +2,9 @@ library(MASS)
 library(survival)
 library(tidyr)
 library(dplyr)
-dirg <- "C:/Users/feiy/OneDrive - The University of Colorado Denver/Desktop/Terminal-Decline"
+dirg <- "C:/Yizhou/Term"
 setwd(dirg)
-num_simulations <- 100
+num_simulations <- 200
 # Simulation loop
 for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
