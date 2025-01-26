@@ -13,9 +13,9 @@ for (sim in 1:num_simulations) {
   cluster_subj <- 50
   n <- cluster * cluster_subj
   time <- 6
-  alpha00 <- 30
+  alpha00 <- 130
   alpha01 <- 1
-  alpha02 <- 1.6
+  alpha02 <- 0.1
   alpha03 <- -30
   alpha04 <- 0.2 
   alpha05 <- 30 
