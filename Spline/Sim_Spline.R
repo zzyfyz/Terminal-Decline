@@ -4,23 +4,24 @@ library(tidyr)
 library(dplyr)
 dirg <- "C:/Yizhou/Term/Terminal-Decline/Spline"
 setwd(dirg)
-num_simulations <- 200
+num_simulations <- 100
 # Simulation loop
 for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
   # Parameters
   cluster <- 20
-  cluster_subj <- 50
+  cluster_subj <- 25
   n <- cluster * cluster_subj
   time <- 6
-  alpha00 <- 130
-  alpha01 <- 1
-  alpha02 <- 0.1
-  alpha03 <- -30
-  alpha04 <- 0.2 
-  alpha05 <- 30 
-  alpha06 <- -0.23 
-  alpha07 <- -0.92 
+  alpha00 <- 20
+  alpha01 <- 2
+  alpha02 <- 1
+  alpha03 <- -4
+  alpha04 <- 0.3 
+  alpha05 <- 10 
+  alpha06 <- 4 
+  alpha07 <- -0.3
+  alpha08 <- -0.5
   
   alpha11 <- 0.2
   alpha12 <- -0.01
@@ -36,7 +37,7 @@ for (sim in 1:num_simulations) {
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
-  x2 <- rnorm(n,70,5)
+  x2 <- runif(n, 100, 150)
   time_points <- seq(1,time, by=1)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
@@ -66,9 +67,9 @@ for (sim in 1:num_simulations) {
       t <- time_points[ind]
       backward_time <- survival_times[i] - t
       if (backward_time > 0) {
-        measurement <- alpha00 +
-          (alpha03 / (1 + alpha04 * backward_time)) + 
-          treatment[i] * alpha05 * exp(alpha06 * backward_time + alpha07) + 
+        measurement <- alpha00 -
+          (alpha03 / (1 + exp(alpha04 * backward_time))) + 
+          treatment[i] * (alpha05 + alpha06 * exp(alpha07 * backward_time + alpha08)) + 
           alpha01 * x1[i] + alpha02 * x2[i] + 
           bi[i] + ui[subject_cluster[i]] + epsiloni[i, ind]
       } else {
