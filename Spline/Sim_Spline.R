@@ -10,9 +10,9 @@ for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
   # Parameters
   cluster <- 20
-  cluster_subj <- 25
+  cluster_subj <- 50
   n <- cluster * cluster_subj
-  time <- 6
+  time <- 24
   alpha00 <- 20
   alpha01 <- 2
   alpha02 <- 1
@@ -24,21 +24,21 @@ for (sim in 1:num_simulations) {
   alpha08 <- -0.5
   
   alpha11 <- 0.2
-  alpha12 <- -0.01
+  alpha12 <- -0.005
   #alpha13 <- 2
   
   b <- 0.03
   c <- 0.02
-  lambda0 <- 0.05
-  gamma <- 2.2
-  sigma_u <- 5
-  sigma_b <- 6
-  sigma_e <- 4
+  lambda0 <- 0.02
+  gamma <- 1.3
+  sigma_u <- 3
+  sigma_b <- 1
+  sigma_e <- 2
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
   x2 <- runif(n, 100, 150)
-  time_points <- seq(1,time, by=1)
+  time_points <- seq(6,time, by=6)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)

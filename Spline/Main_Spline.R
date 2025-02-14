@@ -7,7 +7,7 @@ library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
-time_points <- seq(1,6, by=1)
+time_points <- seq(0,24, by=6)
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
@@ -222,10 +222,10 @@ transformed parameters {
 
 model {
   // Priors
-  alpha01 ~ normal(0, 5);
-  alpha02 ~ normal(0, 5);
-  alpha11 ~ normal(0, 5);
-  alpha12 ~ normal(0, 5);
+  alpha01 ~ normal(0, 10);
+  alpha02 ~ normal(0, 10);
+  alpha11 ~ normal(0, 1);
+  alpha12 ~ normal(0, 1);
 
   b ~ normal(0, 1);
   c ~ normal(0, 1);
@@ -283,7 +283,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 2, alpha02 = 1, alpha11 = 0.2, alpha12 = -0.01,b = 0.03, c = 0.02, sigma_u = 5, sigma_b = 6, sigma_e = 4, lambda0 = 0.05, gamma = 2.2,
+  list(alpha01 = 2, alpha02 = 1, alpha11 = 0.2, alpha12 = -0.005,b = 0.03, c = 0.02, sigma_u = 3, sigma_b = 1, sigma_e = 2, lambda0 = 0.02, gamma = 1.3,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
