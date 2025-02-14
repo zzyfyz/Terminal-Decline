@@ -7,7 +7,7 @@ library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
-time_points <- seq(0,24, by=6)
+time_points <- seq(6,24, by=6)
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
