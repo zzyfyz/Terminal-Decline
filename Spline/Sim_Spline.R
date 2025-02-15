@@ -31,7 +31,7 @@ for (sim in 1:num_simulations) {
   c <- 0.02
   lambda0 <- 0.02
   gamma <- 1.3
-  sigma_u <- 3
+  sigma_u <- 5
   sigma_b <- 1
   sigma_e <- 2
   
