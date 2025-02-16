@@ -24,9 +24,9 @@ for (sim in 1:num_simulations) {
   alpha02 <- 1
   alpha03 <- -20
   alpha04 <- 0.3 
-  alpha05 <- 10 
-  alpha06 <- 10 
-  alpha07 <- -0.5
+  alpha05 <- 1 
+  alpha06 <- 4 
+  alpha07 <- -1
   alpha08 <- -0.5
   alpha11 <- 0.2
   alpha12 <- -0.005
