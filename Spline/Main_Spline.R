@@ -7,15 +7,17 @@ library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
-time_points <- seq(6,24, by=6)
+
+time_points <- as.matrix(final_data[, grep("time_", names(final_data))])
+qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
 
 #Calculate backward times for each subject at each time point
-backward_time_list <- lapply(observed_times_death, function(obs_time) {
-  backward_times <- obs_time - time_points
-  backward_times[backward_times < 0] <- NA  # Set negative backward times to NA
+backward_time_list <- lapply(1:nrow(time_points), function(i) {
+  backward_times <- final_data$observed_time[i] - time_points[i, ]
+  backward_times[backward_times < 0] <- NA  # Remove negative backward times
   return(backward_times)
 })
 
@@ -25,7 +27,7 @@ backward_time_vector <- unlist(backward_time_list)
 #Remove NA values from the vector
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
-num_knots <- 5  ##this is the number of internal knots
+num_knots <- 3  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
 #lb <- min(backward_time_vector)
@@ -40,7 +42,7 @@ stan_data <- list(
   time_points = time_points,
   x1 = final_data$x1,  # Binary covariate
   x2 = final_data$x2,  # Continuous covariate
-  Y = as.matrix(final_data[, grep("time_", names(final_data))]),  # Longitudinal measurements
+  Y = qol_values,  # Longitudinal measurements
   MASK = mask,  # Mask for missing values
   survival_time = final_data$observed_time,  # Survival times
   status = final_data$status,  # Censoring indicator
@@ -86,7 +88,7 @@ data {
   vector[N] x1;  // binary covariate
   vector[N] x2;  // continuous covariate
   vector[N] treatment;
-  row_vector[T] time_points;
+  matrix[N, T] time_points;
   matrix[N, T] Y;  // longitudinal measurements
   matrix[N, T] MASK;  // mask for missing values
   vector[N] survival_time;  // observed survival or censoring times
@@ -191,7 +193,7 @@ transformed parameters {
   for (ind in 1:non_missing_count) {
     int subj = non_missing_indices[ind, 1];
     int time_idx = non_missing_indices[ind, 2];
-    backward_times_non_missing[ind] = death_time[subj] - time_points[time_idx];
+    backward_times_non_missing[ind] = death_time[subj] - time_points[subj, time_idx];
   }
   
   // Generate extended knots

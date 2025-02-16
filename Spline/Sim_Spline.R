@@ -2,30 +2,34 @@ library(MASS)
 library(survival)
 library(tidyr)
 library(dplyr)
+
 dirg <- "C:/Yizhou/Term/Terminal-Decline/Spline"
 setwd(dirg)
+
 num_simulations <- 100
+
 # Simulation loop
 for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
+  
   # Parameters
   cluster <- 20
   cluster_subj <- 50
   n <- cluster * cluster_subj
-  time <- 24
+  study_duration <- 24  # Study duration in months
+  measurement_interval <- 6  # Intended interval (every 6 months)
+  
   alpha00 <- 20
   alpha01 <- 2
   alpha02 <- 1
-  alpha03 <- -4
+  alpha03 <- -20
   alpha04 <- 0.3 
   alpha05 <- 10 
-  alpha06 <- 4 
-  alpha07 <- -0.3
+  alpha06 <- 10 
+  alpha07 <- -0.5
   alpha08 <- -0.5
-  
   alpha11 <- 0.2
   alpha12 <- -0.005
-  #alpha13 <- 2
   
   b <- 0.03
   c <- 0.02
@@ -38,7 +42,6 @@ for (sim in 1:num_simulations) {
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
   x2 <- runif(n, 100, 150)
-  time_points <- seq(6,time, by=6)
   subject_cluster <- rep(1:cluster, each = cluster_subj)
   treatment_clusters <- sample(1:cluster, size = cluster/2, replace = FALSE)
   treatment <- ifelse(subject_cluster %in% treatment_clusters, 0, 1)
@@ -46,7 +49,6 @@ for (sim in 1:num_simulations) {
   # Random effects
   ui <- rnorm(cluster, mean = 0, sd = sigma_u)
   bi <- rnorm(n, mean = 0, sd = sigma_b)
-  epsiloni <- mvrnorm(n, mu = rep(0, time), Sigma = diag(sigma_e*sigma_e, time))
   
   # Cox frailty model for survival data assuming Weibull distribution
   linear <- alpha11 * x1 + alpha12 * x2 + b * bi + c * ui[subject_cluster]
@@ -55,58 +57,64 @@ for (sim in 1:num_simulations) {
   
   # Simulate survival times
   survival_times <- (-log(U) / lambda)^(1 / gamma)
-  censoring_times <- time
+  censoring_times <- study_duration
   observed_times <- pmin(survival_times, censoring_times)
   status <- as.numeric(survival_times <= censoring_times)
   
-  # Mixed model for longitudinal data, modeling backward from death
-  longitudinal_data <- data.frame()
+  # Generate randomized measurement times for each subject
+  measurement_times <- t(sapply(1:n, function(i) {
+    scheduled_times <- seq(measurement_interval, study_duration, by = measurement_interval)
+    actual_times <- scheduled_times + runif(length(scheduled_times), -1, 1)  # Small deviation
+    actual_times <- actual_times[actual_times <= survival_times[i]]  # Only keep valid times
+    actual_times[actual_times > study_duration] <- study_duration
+    if (length(actual_times) < 4) {
+      actual_times <- c(actual_times, rep(NA, 4 - length(actual_times)))  # Pad with NA if less than 4
+    }
+    return(actual_times[1:4])  # Ensure exactly 4 slots
+  }))
   
-  for (i in 1:n) {
-    for (ind in seq_along(time_points)) {
-      t <- time_points[ind]
-      backward_time <- survival_times[i] - t
-      if (backward_time > 0) {
-        measurement <- alpha00 -
+  # Convert to data frame with fixed column names
+  measurement_times_df <- as.data.frame(measurement_times)
+  colnames(measurement_times_df) <- c("time_1", "time_2", "time_3", "time_4")
+  
+  # Generate QoL values at measurement times
+  qol_values <- t(sapply(1:n, function(i) {
+    qol_measurements <- numeric(4)  # Initialize with 4 slots
+    for (j in 1:4) {
+      t <- measurement_times[i, j]
+      if (!is.na(t)) {
+        backward_time <- observed_times[i] - t
+        qol_measurements[j] <- alpha00 + 
           (alpha03 / (1 + exp(alpha04 * backward_time))) + 
           treatment[i] * (alpha05 + alpha06 * exp(alpha07 * backward_time + alpha08)) + 
           alpha01 * x1[i] + alpha02 * x2[i] + 
-          bi[i] + ui[subject_cluster[i]] + epsiloni[i, ind]
+          bi[i] + ui[subject_cluster[i]] + rnorm(1, mean = 0, sd = sigma_e)
       } else {
-        measurement <- NA
+        qol_measurements[j] <- NA
       }
-      longitudinal_data <- rbind(longitudinal_data, data.frame(subject = i, time = t, measurement = measurement))
     }
-  }
+    return(qol_measurements)
+  }))
   
-  # Join the longitudinal and survival data
-  longitudinal_data <- longitudinal_data %>%
-    left_join(data.frame(subject = 1:n, observed_time = observed_times), by = "subject") %>%
-    mutate(measurement = ifelse(time > observed_time, NA, measurement)) %>%
-    select(-observed_time)
+  # Convert QoL values to data frame with fixed column names
+  qol_values_df <- as.data.frame(qol_values)
+  colnames(qol_values_df) <- c("qol_1", "qol_2", "qol_3", "qol_4")
   
-  # Create a mask for the missing data
-  longitudinal_data_wide <- longitudinal_data %>%
-    pivot_wider(names_from = time, values_from = measurement, names_prefix = "time_")
-  
-  # Add covariates and survival data to the final dataset without generating duplicates
-  final_data <- longitudinal_data_wide %>%
-    left_join(
-      data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, observed_time = observed_times, survival_time = survival_times, status = status),
-      by = "subject"
-    )
-  
-  # Create a mask for missing data
-  measurement_columns <- grep("time_", names(longitudinal_data_wide), value = TRUE)
-  mask <- !is.na(as.matrix(longitudinal_data_wide[, measurement_columns]))
-  
-  final_data[is.na(final_data)] <- 0
-  
+  # Create mask dataset (1 if observed, 0 if missing)
+  mask <- !is.na(qol_values_df) * 1  # Convert TRUE/FALSE to 1/0
   mask_df <- as.data.frame(mask)
-  filename <- paste0("mask.", sim-1, ".csv")
-  write.csv(mask_df, file = filename, row.names = FALSE)
+  colnames(mask_df) <- c("mask_1", "mask_2", "mask_3", "mask_4")
   
-  filename <- paste0("sim.data.", sim-1, ".csv")
-  write.csv(final_data, file = filename, row.names = FALSE)
+  # Create final dataset
+  final_data <- data.frame(subject = 1:n) %>%
+    cbind(measurement_times_df, qol_values_df) %>%
+    left_join(data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, 
+                         observed_time = observed_times, survival_time = survival_times, status = status),
+              by = "subject")
   
+  # Save simulation data
+  write.csv(final_data, paste0("sim.data.", sim-1, ".csv"), row.names = FALSE)
+  write.csv(mask_df, paste0("mask.", sim-1, ".csv"), row.names = FALSE)
 }
+
+
