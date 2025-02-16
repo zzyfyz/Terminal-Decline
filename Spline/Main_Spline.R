@@ -9,7 +9,9 @@ mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 
 time_points <- as.matrix(final_data[, grep("time_", names(final_data))])
+time_points[is.na(time_points)] <- -999
 qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
+qol_values[is.na(qol_values)] <- -999
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
