@@ -14,7 +14,7 @@ for (sim in 1:num_simulations) {
   
   # Parameters
   cluster <- 20
-  cluster_subj <- 50
+  cluster_subj <- 25
   n <- cluster * cluster_subj
   study_duration <- 24  # Study duration in months
   measurement_interval <- 6  # Intended interval (every 6 months)
@@ -29,12 +29,12 @@ for (sim in 1:num_simulations) {
   alpha07 <- -1
   alpha08 <- -0.5
   alpha11 <- 0.2
-  alpha12 <- -0.005
+  alpha12 <- -0.02
   
   b <- 0.03
-  c <- 0.02
-  lambda0 <- 0.02
-  gamma <- 1.3
+  c <- 0.05
+  lambda0 <- 0.06
+  gamma <- 1.5
   sigma_u <- 5
   sigma_b <- 1
   sigma_e <- 2
