@@ -9,9 +9,8 @@ mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 
 time_points <- as.matrix(final_data[, grep("time_", names(final_data))])
-time_points[is.na(time_points)] <- -999
 qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
-qol_values[is.na(qol_values)] <- -999
+
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
@@ -29,11 +28,14 @@ backward_time_vector <- unlist(backward_time_list)
 #Remove NA values from the vector
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
-num_knots <- 3  ##this is the number of internal knots
+num_knots <- 5  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
 #lb <- min(backward_time_vector)
 #ub <- max(backward_time_vector)
+
+time_points[is.na(time_points)] <- -999
+qol_values[is.na(qol_values)] <- -999
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
