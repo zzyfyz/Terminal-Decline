@@ -16,8 +16,8 @@ for (sim in 1:num_simulations) {
   cluster <- 20
   cluster_subj <- 25
   n <- cluster * cluster_subj
-  study_duration <- 24  # Study duration in months
-  measurement_interval <- 6  # Intended interval (every 6 months)
+  study_duration <- 12  # Study duration in months
+  measurement_interval <- 3  # Intended interval (every 6 months)
   
   alpha00 <- 20
   alpha01 <- 2
@@ -31,13 +31,13 @@ for (sim in 1:num_simulations) {
   alpha11 <- 0.2
   alpha12 <- -0.02
   
-  b <- 0.03
+  b <- 0.1
   c <- 0.05
   lambda0 <- 0.06
-  gamma <- 1.5
+  gamma <- 1.8
   sigma_u <- 5
-  sigma_b <- 1
-  sigma_e <- 2
+  sigma_b <- 2
+  sigma_e <- 3
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
@@ -101,7 +101,7 @@ for (sim in 1:num_simulations) {
   colnames(qol_values_df) <- c("qol_1", "qol_2", "qol_3", "qol_4")
   
   # Create mask dataset (1 if observed, 0 if missing)
-  mask <- !is.na(qol_values_df) * 1  # Convert TRUE/FALSE to 1/0
+  mask <- !is.na(measurement_times_df) * 1  # Convert TRUE/FALSE to 1/0
   mask_df <- as.data.frame(mask)
   colnames(mask_df) <- c("mask_1", "mask_2", "mask_3", "mask_4")
   

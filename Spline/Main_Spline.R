@@ -34,8 +34,8 @@ knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, len
 #lb <- min(backward_time_vector)
 #ub <- max(backward_time_vector)
 
-time_points[is.na(time_points)] <- -999
-qol_values[is.na(qol_values)] <- -999
+time_points[is.na(time_points)] <- 0
+qol_values[is.na(qol_values)] <- 0
 
 stan_data <- list(
   N = nrow(final_data),  # Total number of subjects
@@ -289,7 +289,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 2, alpha02 = 1, alpha11 = 0.2, alpha12 = -0.02,b = 0.03, c = 0.05, sigma_u = 5, sigma_b = 1, sigma_e = 2, lambda0 = 0.06, gamma = 1.5,
+  list(alpha01 = 2, alpha02 = 1, alpha11 = 0.2, alpha12 = -0.02,b = 0.1, c = 0.05, sigma_u = 5, sigma_b = 2, sigma_e = 3, lambda0 = 0.06, gamma = 1.8,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
