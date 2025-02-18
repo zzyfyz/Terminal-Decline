@@ -31,13 +31,13 @@ for (sim in 1:num_simulations) {
   alpha11 <- 0.2
   alpha12 <- -0.02
   
-  b <- 0.1
+  b <- 0.03
   c <- 0.05
   lambda0 <- 0.06
   gamma <- 1.8
   sigma_u <- 5
-  sigma_b <- 2
-  sigma_e <- 3
+  sigma_b <- 6
+  sigma_e <- 4
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
