@@ -64,7 +64,7 @@ for (sim in 1:num_simulations) {
   # Generate randomized measurement times for each subject
   measurement_times <- t(sapply(1:n, function(i) {
     scheduled_times <- seq(measurement_interval, study_duration, by = measurement_interval)
-    actual_times <- scheduled_times + runif(length(scheduled_times), -1, 1)  # Small deviation
+    actual_times <- scheduled_times + runif(length(scheduled_times), -1.5, 1.5)  # Small deviation
     actual_times <- actual_times[actual_times <= survival_times[i]]  # Only keep valid times
     actual_times[actual_times > study_duration] <- study_duration
     if (length(actual_times) < 4) {
