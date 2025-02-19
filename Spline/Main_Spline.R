@@ -11,7 +11,7 @@ final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
 time_points <- as.matrix(final_data[, grep("time_", names(final_data))])
 qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
 
-mean_qol <- mean(qol_values - mean_qol)
+mean_qol <- mean(qol_values, na.rm = TRUE)
 
 qol_values <- qol_values - mean_qol
 
