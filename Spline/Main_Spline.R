@@ -231,10 +231,10 @@ transformed parameters {
 
 model {
   // Priors
-  alpha01 ~ normal(0, 1);
-  alpha02 ~ normal(0, 1);
-  alpha11 ~ normal(0, 1);
-  alpha12 ~ normal(0, 1);
+  alpha01 ~ normal(0, 10);
+  alpha02 ~ normal(0, 10);
+  alpha11 ~ normal(0, 10);
+  alpha12 ~ normal(0, 10);
 
   b ~ normal(0, 1);
   c ~ normal(0, 1);
