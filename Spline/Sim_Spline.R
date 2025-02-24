@@ -13,7 +13,7 @@ for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
   
   # Parameters
-  cluster <- 10
+  cluster <- 40
   cluster_subj <- 25
   n <- cluster * cluster_subj
   study_duration <- 12  # Study duration in months
