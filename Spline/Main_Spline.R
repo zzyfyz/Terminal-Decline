@@ -13,7 +13,7 @@ qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
 
 mean_qol <- mean(qol_values, na.rm = TRUE)
 
-qol_values <- qol_values - mean_qol
+#qol_values <- qol_values - mean_qol
 
 dat_death <- subset(final_data, status==1)
 observed_times_death <- dat_death$observed_time
@@ -173,6 +173,8 @@ transformed parameters {
   vector[N] death_time;
   vector[N] b_i = z_b * sigma_b;
   vector[K] u_i = z_u * sigma_u;
+  u_i = u_i - mean(u_i);
+  b_i = b_i - mean(b_i);
 
   vector[non_missing_count] backward_times_non_missing;  // Only non-missing backward times
   matrix[num_basis, non_missing_count] B;  
@@ -239,13 +241,13 @@ model {
   b ~ normal(0, 1);
   c ~ normal(0, 1);
 
-  sigma_b ~ normal(0, 5);
-  sigma_u ~ normal(0, 5);
-  sigma_e ~ normal(0, 5);
+  sigma_b ~ cauchy(0, 2.5);
+  sigma_u ~ cauchy(0, 2.5);
+  sigma_e ~ cauchy(0, 2.5);
   lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
-  a_backward[1] ~ normal(0, 10);
+  a_backward[1] ~ normal(100, 10);
   a_backward[2] ~ normal(0, 10);
   a_treatment[1] ~ normal(0, 10);
   a_treatment[2] ~ normal(0, 10);
@@ -292,7 +294,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 2, alpha02 = -0.002, alpha11 = -0.02, alpha12 = 0.001,b = 0.03, c = 0.02, sigma_u = 3, sigma_b = 1, sigma_e = 2, lambda0 = 0.02, gamma = 1.3,
+  list(alpha01 = 2, alpha02 = -0.002, alpha11 = -0.02, alpha12 = 0.001,b = 0.3, c = 0.2, sigma_u = 3, sigma_b = 1, sigma_e = 2, lambda0 = 0.02, gamma = 1.3,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
