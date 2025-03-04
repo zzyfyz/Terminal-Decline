@@ -31,7 +31,7 @@ backward_time_vector <- unlist(backward_time_list)
 #Remove NA values from the vector
 backward_time_vector <- backward_time_vector[!is.na(backward_time_vector)]
 
-num_knots <- 4  ##this is the number of internal knots
+num_knots <- 3  ##this is the number of internal knots
 degree <- 1
 knots <- unname(quantile(backward_time_vector, probs = seq(from = 0, to = 1, length.out = num_knots+2)[-c(1, num_knots+2)]))
 #lb <- min(backward_time_vector)
@@ -247,7 +247,7 @@ model {
   lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
-  a_backward[1] ~ normal(100, 10);
+  a_backward[1] ~ normal(0, 10);
   a_backward[2] ~ normal(0, 10);
   a_treatment[1] ~ normal(0, 10);
   a_treatment[2] ~ normal(0, 10);
@@ -294,7 +294,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 2, alpha02 = -0.002, alpha11 = -0.02, alpha12 = 0.001,b = 0.3, c = 0.2, sigma_u = 3, sigma_b = 1, sigma_e = 2, lambda0 = 0.02, gamma = 1.3,
+  list(alpha01 = 0.05, alpha02 = -0.001, alpha11 = -0.02, alpha12 = 0.001,b = 0.3, c = 0.2, sigma_u = 1, sigma_b = 0.8, sigma_e = 0.5, lambda0 = 0.02, gamma = 1.3,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
