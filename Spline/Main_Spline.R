@@ -241,9 +241,9 @@ model {
   b ~ normal(0, 1);
   c ~ normal(0, 1);
 
-  sigma_b ~ cauchy(0, 2.5);
-  sigma_u ~ cauchy(0, 2.5);
-  sigma_e ~ cauchy(0, 2.5);
+  sigma_b ~ normal(0, 5);
+  sigma_u ~ normal(0, 5);
+  sigma_e ~ normal(0, 5);
   lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
