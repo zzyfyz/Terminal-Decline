@@ -173,6 +173,8 @@ transformed parameters {
   vector[N] death_time;
   vector[N] b_i = z_b * sigma_b;
   vector[K] u_i = z_u * sigma_u;
+  u_i = u_i - mean(u_i);
+  b_i = b_i - mean(b_i);
 
   vector[non_missing_count] backward_times_non_missing;  // Only non-missing backward times
   matrix[num_basis, non_missing_count] B;  
@@ -239,9 +241,9 @@ model {
   b ~ normal(0, 1);
   c ~ normal(0, 1);
 
-  sigma_b ~ normal(0, 5);
-  sigma_u ~ normal(0, 5);
-  sigma_e ~ normal(0, 5);
+  sigma_b ~ normal(0, 1);
+  sigma_u ~ normal(0, 1);
+  sigma_e ~ normal(0, 1);
   lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
@@ -296,7 +298,7 @@ init_fn <- function() {
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
-       a_backward = c(7,rnorm(length(knots)+degree, 0, 10)),  
+       a_backward = rnorm(length(knots)+degree+1, 0, 10),  
        a_treatment = rnorm(length(knots)+degree+1, 0, 10),
        sigma_rw2_backward = 1,
        sigma_rw2_treatment = 1)
