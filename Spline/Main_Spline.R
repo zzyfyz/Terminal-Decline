@@ -16,11 +16,11 @@ mean_qol <- mean(qol_values, na.rm = TRUE)
 #qol_values <- qol_values - mean_qol
 
 dat_death <- subset(final_data, status==1)
-observed_times_death <- dat_death$observed_time
+observed_times_death <- as.matrix(dat_death[, grep("time_", names(dat_death))])
 
 #Calculate backward times for each subject at each time point
-backward_time_list <- lapply(1:nrow(time_points), function(i) {
-  backward_times <- final_data$observed_time[i] - time_points[i, ]
+backward_time_list <- lapply(1:nrow(observed_times_death), function(i) {
+  backward_times <- dat_death$observed_time[i] - observed_times_death[i, ]
   backward_times[backward_times < 0] <- NA  # Remove negative backward times
   return(backward_times)
 })
