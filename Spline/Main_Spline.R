@@ -156,8 +156,8 @@ parameters {
   real<lower=0> lambda0;
   real<lower=0> gamma;
 
-  real<lower=0> a_backward_1;
-  row_vector[num_basis-1] a_backward_rest;
+
+  row_vector[num_basis] a_backward;  // Raw spline coefficients for backward time
   row_vector[num_basis] a_treatment;  // Raw spline coefficients for treatment effect
   real<lower=0> sigma_rw2_backward; 
   real<lower=0> sigma_rw2_treatment; 
@@ -173,9 +173,6 @@ transformed parameters {
   vector[N] death_time;
   vector[N] b_i = z_b * sigma_b;
   vector[K] u_i = z_u * sigma_u;
-  row_vector[num_basis] a_backward;
-  a_backward[1] = a_backward_1;
-  a_backward[2:num_basis] = a_backward_rest;
 
   vector[non_missing_count] backward_times_non_missing;  // Only non-missing backward times
   matrix[num_basis, non_missing_count] B;  
@@ -299,7 +296,7 @@ init_fn <- function() {
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
-       a_backward = rnorm(length(knots)+degree+1, 0, 10),  
+       a_backward = c(7,rnorm(length(knots)+degree, 0, 10)),  
        a_treatment = rnorm(length(knots)+degree+1, 0, 10),
        sigma_rw2_backward = 1,
        sigma_rw2_treatment = 1)
