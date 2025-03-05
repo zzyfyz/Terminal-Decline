@@ -173,8 +173,6 @@ transformed parameters {
   vector[N] death_time;
   vector[N] b_i = z_b * sigma_b;
   vector[K] u_i = z_u * sigma_u;
-  u_i = u_i - mean(u_i);
-  b_i = b_i - mean(b_i);
 
   vector[non_missing_count] backward_times_non_missing;  // Only non-missing backward times
   matrix[num_basis, non_missing_count] B;  
