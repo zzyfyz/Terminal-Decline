@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: rocker/tidyverse:4.4.3
+From: rocker/rstudio:4.4.3
 
 %post
     apt -y update
