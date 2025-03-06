@@ -10,7 +10,7 @@ num_simulations <- 100
 
 # Simulation loop
 for (sim in 1:num_simulations) {
-  set.seed(123 + sim)  
+  set.seed(123 + 1)  
   
   # Parameters
   cluster <- 10
@@ -19,20 +19,20 @@ for (sim in 1:num_simulations) {
   study_duration <- 12  # Study duration in months
   measurement_interval <- 3  # Intended interval (every 6 months)
   
-  alpha00 <- 6
-  alpha01 <- 0.05
-  alpha02 <- -0.003
-  alpha03 <- -1
+  alpha00 <- 7
+  alpha01 <- 0.7
+  alpha02 <- -0.03
+  alpha03 <- 2
   alpha04 <- 0.6 
   alpha05 <- 0.02
   alpha06 <- 0.3 
   alpha07 <- -0.5
   alpha08 <- -0.5
   alpha11 <- -0.02
-  alpha12 <- 0.001
+  alpha12 <- 0.01
   
   b <- 0.3
-  c <- 0.2
+  c <- -0.2
   lambda0 <- 0.02
   gamma <- 1.3
   sigma_u <- 0.5
