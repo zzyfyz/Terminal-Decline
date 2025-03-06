@@ -314,9 +314,9 @@ num <- unlist(lapply(strsplit(text,'.',fixed=TRUE),function(x) x[[3]]))
 write.csv(fit_df, paste0("mod.result.",num,".csv"))
 
 
-pdf(file = paste0("mod.traceplot.",num,".pdf"),   # The directory you want to save the file in
-    width = 10, # The width of the plot in inches
-    height = 8) # The height of the plot in inches
+pdf(file = paste0("mod.traceplot.",num,".pdf"), 
+    width = 10, 
+    height = 8) 
 traceplot(fit, c("alpha01","alpha02","alpha11","alpha12","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e","a_backward","a_treatment"))
 dev.off()
 

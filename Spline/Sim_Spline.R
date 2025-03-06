@@ -10,7 +10,7 @@ num_simulations <- 100
 
 # Simulation loop
 for (sim in 1:num_simulations) {
-  set.seed(123 + 99)  
+  set.seed(123 + sim)  
   
   # Parameters
   cluster <- 10
