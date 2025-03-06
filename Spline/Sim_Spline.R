@@ -10,7 +10,7 @@ num_simulations <- 100
 
 # Simulation loop
 for (sim in 1:num_simulations) {
-  set.seed(123 + 1)  
+  set.seed(123 + sim)  
   
   # Parameters
   cluster <- 10
@@ -19,13 +19,13 @@ for (sim in 1:num_simulations) {
   study_duration <- 12  # Study duration in months
   measurement_interval <- 3  # Intended interval (every 6 months)
   
-  alpha00 <- 7
+  alpha00 <- 5
   alpha01 <- 0.7
   alpha02 <- -0.03
   alpha03 <- 2
-  alpha04 <- 0.6 
-  alpha05 <- 0.02
-  alpha06 <- 0.3 
+  alpha04 <- -0.6 
+  alpha05 <- 0.01
+  alpha06 <- 0.8 
   alpha07 <- -0.5
   alpha08 <- -0.5
   alpha11 <- -0.02
@@ -33,11 +33,11 @@ for (sim in 1:num_simulations) {
   
   b <- 0.3
   c <- -0.2
-  lambda0 <- 0.02
-  gamma <- 1.3
+  lambda0 <- 0.01
+  gamma <- 1.4
   sigma_u <- 0.5
   sigma_b <- 1
-  sigma_e <- 0.5
+  sigma_e <- 1
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
@@ -122,3 +122,41 @@ for (sim in 1:num_simulations) {
   write.csv(mask_df, paste0("mask.", sim-1, ".csv"), row.names = FALSE)
 }
 
+#alpha00 <- 7
+#alpha01 <- 0.7
+#alpha02 <- -0.03
+#alpha03 <- 2
+#alpha04 <- -0.6 
+#alpha05 <- 0.01
+#alpha06 <- 0.8 
+#alpha07 <- -0.5
+#alpha08 <- -0.5
+#alpha11 <- -0.02
+#alpha12 <- 0.01
+
+# Define a sequence of backward times from 0 to study duration
+#time_points <- seq(0, study_duration, length.out = 100)  # 100 points for smooth curve
+
+# Compute the true expected QoL for both treatment groups
+#true_qol <- data.frame(
+  #backward_time = time_points,
+  #control = alpha00 + (alpha03 / (1 + exp(alpha04 * time_points))) + alpha01*0.5 + alpha02 * 70,
+  #treatment = alpha00 + (alpha03 / (1 + exp(alpha04 * time_points))) + 
+    #(alpha05 + alpha06 * exp(alpha07 * time_points + alpha08)) + alpha01*0.5 + alpha02 * 70
+#)
+
+# Convert to long format for ggplot
+#true_qol_long <- true_qol %>%
+  #tidyr::pivot_longer(cols = c("control", "treatment"), 
+                      #names_to = "group", values_to = "expected_qol")
+
+# Plot the true mean QoL trajectory
+#ggplot(true_qol_long, aes(x = backward_time, y = expected_qol, color = group)) +
+  #geom_line(size = 1.2) +
+  #labs(title = "True Mean QoL Trajectory",
+       #x = "Backward Time from Death",
+       #y = "Expected QoL",
+       #color = "Group") +
+  #scale_color_manual(values = c("control" = "blue", "treatment" = "red"),
+                     #labels = c("Control", "Treatment")) +
+  #theme_minimal()
