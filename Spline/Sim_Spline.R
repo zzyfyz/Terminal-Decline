@@ -10,34 +10,34 @@ num_simulations <- 100
 
 # Simulation loop
 for (sim in 1:num_simulations) {
-  set.seed(123 + sim)  
+  set.seed(123 + 99)  
   
   # Parameters
-  cluster <- 40
+  cluster <- 10
   cluster_subj <- 25
   n <- cluster * cluster_subj
   study_duration <- 12  # Study duration in months
   measurement_interval <- 3  # Intended interval (every 6 months)
   
-  alpha00 <- 130
-  alpha01 <- 2
-  alpha02 <- -0.002
-  alpha03 <- -20
-  alpha04 <- 0.3 
-  alpha05 <- 5 
-  alpha06 <- 5 
-  alpha07 <- -1
+  alpha00 <- 6
+  alpha01 <- 0.05
+  alpha02 <- -0.003
+  alpha03 <- -1
+  alpha04 <- 0.6 
+  alpha05 <- 0.02
+  alpha06 <- 0.3 
+  alpha07 <- -0.5
   alpha08 <- -0.5
   alpha11 <- -0.02
   alpha12 <- 0.001
   
-  b <- 0.03
-  c <- 0.02
+  b <- 0.3
+  c <- 0.2
   lambda0 <- 0.02
   gamma <- 1.3
-  sigma_u <- 3
+  sigma_u <- 0.5
   sigma_b <- 1
-  sigma_e <- 2
+  sigma_e <- 0.5
   
   # Fixed effects covariates
   x1 <- rbinom(n, 1, 0.5)
@@ -121,5 +121,4 @@ for (sim in 1:num_simulations) {
   write.csv(final_data, paste0("sim.data.", sim-1, ".csv"), row.names = FALSE)
   write.csv(mask_df, paste0("mask.", sim-1, ".csv"), row.names = FALSE)
 }
-
 

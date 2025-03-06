@@ -294,7 +294,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 0.05, alpha02 = -0.01, alpha11 = -0.02, alpha12 = 0.001,b = 0.3, c = 0.2, sigma_u = 1, sigma_b = 1, sigma_e = 0.5, lambda0 = 0.02, gamma = 1.3,
+  list(alpha01 = 0.05, alpha02 = -0.003, alpha11 = -0.02, alpha12 = 0.001,b = 0.3, c = 0.2, sigma_u = 0.5, sigma_b = 1, sigma_e = 0.5, lambda0 = 0.02, gamma = 1.3,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
