@@ -7,6 +7,7 @@ library(rstan)
 
 mask <- as.matrix(read.csv(list.files(pattern="mask.")))
 final_data <- as.data.frame(read.csv(list.files(pattern="sim.data.")))
+final_data$x2_c <- final_data$x2 - mean(final_data$x2)
 
 time_points <- as.matrix(final_data[, grep("time_", names(final_data))])
 qol_values <- as.matrix(final_data[, grep("qol_", names(final_data))])
@@ -48,7 +49,7 @@ stan_data <- list(
   treatment = final_data$treatment,
   time_points = time_points,
   x1 = final_data$x1,  # Binary covariate
-  x2 = final_data$x2,  # Continuous covariate
+  x2 = final_data$x2_c,  # Continuous covariate
   Y = qol_values,  # Longitudinal measurements
   MASK = mask,  # Mask for missing values
   survival_time = final_data$observed_time,  # Survival times
