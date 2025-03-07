@@ -11,7 +11,7 @@ output = R.out.$(Cluster).$(Process)
 +JobDurationCategory = "Long"
 
 request_cpus   = 2
-request_memory = 6GB
-request_disk   = 1GB
+request_memory = 10GB
+request_disk   = 4GB
 
 queue 100
