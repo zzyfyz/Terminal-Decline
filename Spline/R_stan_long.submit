@@ -1,4 +1,4 @@
-+SingularityImage = "osdf:///ospool/ap40/data/jiayuan.shi/terminal_spline.sif"
++SingularityImage = "osdf:///ospool/ap40/data/jiayuan.shi/terminal.sif"
 executable        = Main_Spline.R
 arguments = sim.data.$(Process).csv mask.$(Process).csv
 transfer_input_files = sim.data.$(Process).csv, mask.$(Process).csv
