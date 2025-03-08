@@ -143,18 +143,18 @@ transformed data {
 
 parameters {
 
-  real alpha01;
-  real alpha02;
-  real alpha11;
-  real alpha12;
+  real alpha1;
+  real alpha2;
+  real phi1;
+  real phi2;
 
-  real b;
-  real c;
+  real v1;
+  real v2;
 
   real<lower=0> sigma_b;
   real<lower=0> sigma_u;
   real<lower=0> sigma_e;
-  real<lower=0> lambda0;
+  real<lower=0> alpha10;
   real<lower=0> gamma;
 
 
@@ -186,7 +186,7 @@ transformed parameters {
   matrix[N, T] UI;
   matrix[N, T] MU;
 
-  lambda = lambda0 * exp(alpha11 * x1 + alpha12 * x2 + b * b_i + c * u_i[cluster]);
+  lambda = exp(alpha10 + phi1 * x1 + phi2 * x2 + v1 * b_i + v2 * u_i[cluster]);
 
   for (i in 1:N) {
     if (status[i] == 1) {
@@ -225,7 +225,7 @@ transformed parameters {
   for (ind in 1:non_missing_count) {
     int subj = non_missing_indices[ind, 1];
     int time_idx = non_missing_indices[ind, 2];
-    MU[subj, time_idx] = X1[subj, time_idx] * alpha01 + X2[subj, time_idx] * alpha02 + spline_contribution_backward[ind] + TRT[subj, time_idx] * spline_contribution_treatment[ind] + BI[subj, time_idx] + UI[subj, time_idx];
+    MU[subj, time_idx] = X1[subj, time_idx] * alpha1 + X2[subj, time_idx] * alpha2 + spline_contribution_backward[ind] + TRT[subj, time_idx] * spline_contribution_treatment[ind] + BI[subj, time_idx] + UI[subj, time_idx];
     
   }
   
@@ -234,18 +234,18 @@ transformed parameters {
 
 model {
   // Priors
-  alpha01 ~ normal(0, 10);
-  alpha02 ~ normal(0, 10);
-  alpha11 ~ normal(0, 10);
-  alpha12 ~ normal(0, 10);
+  alpha1 ~ normal(0, 10);
+  alpha2 ~ normal(0, 10);
+  alpha10 ~ normal(0, 10);
+  phi1 ~ normal(0, 10);
+  phi2 ~ normal(0, 10);
 
-  b ~ normal(0, 1);
-  c ~ normal(0, 1);
+  v1 ~ normal(0, 1);
+  v2 ~ normal(0, 1);
 
   sigma_b ~ normal(0, 1);
   sigma_u ~ normal(0, 1);
   sigma_e ~ normal(0, 1);
-  lambda0 ~ gamma(0.5, 0.5);
   gamma ~ gamma(0.5, 0.5);
   
   a_backward[1] ~ normal(0, 10);
@@ -295,7 +295,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha01 = 0.7, alpha02 = -0.03, alpha11 = -0.02, alpha12 = 0.01,b = 0.3, c = -0.2, sigma_u = 0.5, sigma_b = 1, sigma_e = 1, lambda0 = 0.01, gamma = 1.4,
+  list(alpha1 = 0.7, alpha2 = -0.03, alpha10 = -4.6, phi1 = -0.02, phi2 = 0.01,v1 = 0.3, v2 = -0.2, sigma_u = 0.5, sigma_b = 1, sigma_e = 1, gamma = 1.4,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
@@ -318,7 +318,7 @@ write.csv(fit_df, paste0("mod.result.",num,".csv"))
 pdf(file = paste0("mod.traceplot.",num,".pdf"), 
     width = 10, 
     height = 8) 
-traceplot(fit, c("alpha01","alpha02","alpha11","alpha12","b","c","lambda0","gamma","sigma_b","sigma_u","sigma_e","a_backward","a_treatment"))
+traceplot(fit, c("alpha1","alpha2","phi1","phi2","v1","v2","gamma","sigma_b","sigma_u","sigma_e"))
 dev.off()
 
 
