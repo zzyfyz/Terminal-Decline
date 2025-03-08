@@ -145,6 +145,7 @@ parameters {
 
   real alpha1;
   real alpha2;
+  real phi0;
   real phi1;
   real phi2;
 
@@ -154,7 +155,7 @@ parameters {
   real<lower=0> sigma_b;
   real<lower=0> sigma_u;
   real<lower=0> sigma_e;
-  real<lower=0> phi0;
+
   real<lower=0> gamma;
 
 
