@@ -28,12 +28,14 @@ for (sim in 1:num_simulations) {
   alpha06 <- 0.8 
   alpha07 <- -0.5
   alpha08 <- -0.5
+  
+  alpha01 <- -4.6
   alpha11 <- -0.02
   alpha12 <- 0.01
   
   b <- 0.3
   c <- -0.2
-  lambda0 <- 0.01
+  
   gamma <- 1.4
   sigma_u <- 0.5
   sigma_b <- 1
@@ -51,8 +53,8 @@ for (sim in 1:num_simulations) {
   bi <- rnorm(n, mean = 0, sd = sigma_b)
   
   # Cox frailty model for survival data assuming Weibull distribution
-  linear <- alpha11 * x1 + alpha12 * x2 + b * bi + c * ui[subject_cluster]
-  lambda <- lambda0 * exp(linear)
+  linear <- alpha01 + alpha11 * x1 + alpha12 * x2 + b * bi + c * ui[subject_cluster]
+  lambda <- exp(linear)
   U <- runif(n)
   
   # Simulate survival times
