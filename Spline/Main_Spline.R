@@ -154,7 +154,7 @@ parameters {
   real<lower=0> sigma_b;
   real<lower=0> sigma_u;
   real<lower=0> sigma_e;
-  real<lower=0> alpha10;
+  real<lower=0> phi0;
   real<lower=0> gamma;
 
 
@@ -186,7 +186,7 @@ transformed parameters {
   matrix[N, T] UI;
   matrix[N, T] MU;
 
-  lambda = exp(alpha10 + phi1 * x1 + phi2 * x2 + v1 * b_i + v2 * u_i[cluster]);
+  lambda = exp(phi0 + phi1 * x1 + phi2 * x2 + v1 * b_i + v2 * u_i[cluster]);
 
   for (i in 1:N) {
     if (status[i] == 1) {
@@ -236,7 +236,7 @@ model {
   // Priors
   alpha1 ~ normal(0, 10);
   alpha2 ~ normal(0, 10);
-  alpha10 ~ normal(0, 10);
+  phi0 ~ normal(0, 10);
   phi1 ~ normal(0, 10);
   phi2 ~ normal(0, 10);
 
@@ -295,7 +295,7 @@ model {
 stan_model <- stan_model(model_code = stan_model_code)
 
 init_fn <- function() {
-  list(alpha1 = 0.7, alpha2 = -0.03, alpha10 = -4.6, phi1 = -0.02, phi2 = 0.01,v1 = 0.3, v2 = -0.2, sigma_u = 0.5, sigma_b = 1, sigma_e = 1, gamma = 1.4,
+  list(alpha1 = 0.7, alpha2 = -0.03, phi0 = -4.6, phi1 = -0.02, phi2 = 0.01, v1 = 0.3, v2 = -0.2, sigma_u = 0.5, sigma_b = 1, sigma_e = 1, gamma = 1.4,
        z_b = rnorm(nrow(final_data), 0, 1),
        z_u = rnorm(length(unique(final_data$cluster)), 0, 1),  
        U = runif(nrow(final_data), 0, 1), 
