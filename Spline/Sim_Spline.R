@@ -6,7 +6,7 @@ library(dplyr)
 dirg <- "C:/Yizhou/Term/Terminal-Decline/Spline"
 setwd(dirg)
 
-num_simulations <- 100
+num_simulations <- 300
 
 # Simulation loop
 for (sim in 1:num_simulations) {
