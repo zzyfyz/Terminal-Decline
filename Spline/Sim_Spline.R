@@ -29,7 +29,7 @@ for (sim in 1:num_simulations) {
   alpha07 <- -0.5
   alpha08 <- -0.5
   
-  alpha10 <- -4.6
+  alpha10 <- -6
   alpha11 <- -0.02
   alpha12 <- 0.01
   
@@ -59,17 +59,21 @@ for (sim in 1:num_simulations) {
   
   # Simulate survival times
   survival_times <- (-log(U) / lambda)^(1 / gamma)
-  censoring_times <- study_duration
-  observed_times <- pmin(survival_times, censoring_times)
-  status <- as.numeric(survival_times <= censoring_times)
+  
+  # Generate random censoring times from an exponential distribution
+  censoring_rate <- 1 / (20 * study_duration)
+  censoring_times <- rexp(n, rate = censoring_rate)
+  
+  # Determine observed times and status
+  observed_times <- pmin(survival_times, censoring_times, study_duration)
+  status <- as.numeric(survival_times <= pmin(censoring_times, study_duration))
   
   # Generate randomized measurement times for each subject
   measurement_times <- t(sapply(1:n, function(i) {
     scheduled_times <- seq(0, study_duration, by = measurement_interval)
     actual_times <- ifelse(scheduled_times > 0, scheduled_times + runif(length(scheduled_times), -1.5, 1.5), scheduled_times)
-    actual_times <- actual_times[actual_times < survival_times[i]]  # Only keep valid times
+    actual_times <- actual_times[actual_times < observed_times[i]]  # Only keep valid times
     actual_times[actual_times > study_duration] <- study_duration
-
     
     if (length(actual_times) < 5) {
       actual_times <- c(actual_times, rep(NA, 5 - length(actual_times)))
@@ -87,7 +91,7 @@ for (sim in 1:num_simulations) {
     for (j in 1:5) {
       t <- measurement_times[i, j]
       if (!is.na(t)) {
-        backward_time <- survival_times[i] - t
+        backward_time <- observed_times[i] - t
         qol_measurements[j] <- alpha00 + 
           (alpha03 / (1 + exp(alpha04 * backward_time))) + 
           treatment[i] * (alpha05 + alpha06 * exp(alpha07 * backward_time + alpha08)) + 
@@ -113,16 +117,14 @@ for (sim in 1:num_simulations) {
   final_data <- data.frame(subject = 1:n) %>%
     cbind(measurement_times_df, qol_values_df) %>%
     left_join(data.frame(subject = 1:n, x1, x2, cluster = subject_cluster, treatment = treatment, 
-                         observed_time = observed_times, survival_time = survival_times, status = status),
+                         observed_time = observed_times, survival_time = survival_times, censoring_time = censoring_times, status = status),
               by = "subject")
-  
-  #table(final_data$status)
-  summary(qol_values_df)
   
   # Save simulation data
   write.csv(final_data, paste0("sim.data.", sim-1, ".csv"), row.names = FALSE)
   write.csv(mask_df, paste0("mask.", sim-1, ".csv"), row.names = FALSE)
 }
+
 
 #alpha00 <- 7
 #alpha01 <- 0.7
