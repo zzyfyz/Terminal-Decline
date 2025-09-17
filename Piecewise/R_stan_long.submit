@@ -1,0 +1,17 @@
++SingularityImage = "osdf:///ospool/ap40/data/yizhou.fei/terminal.sif"
+executable        = Main_Spline.R
+arguments = sim.data.$(Process).csv mask.$(Process).csv
+transfer_input_files = sim.data.$(Process).csv, mask.$(Process).csv
+transfer_output_files = mod.result.$(Process).csv, mod.traceplot.$(Process).pdf
+
+log    = R.log.$(Cluster).$(Process)
+error  = R.err.$(Cluster).$(Process)
+output = R.out.$(Cluster).$(Process)
+
++JobDurationCategory = "Long"
+
+request_cpus   = 2
+request_memory = 10GB
+request_disk   = 4GB
+
+queue 300
