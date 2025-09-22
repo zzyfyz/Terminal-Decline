@@ -13,7 +13,7 @@ for (sim in 1:num_simulations) {
   set.seed(123 + sim)  
   
   # Parameters
-  cluster <- 10
+  cluster <- 40
   cluster_subj <- 25
   n <- cluster * cluster_subj
   study_duration <- 12  # Study duration in months
@@ -29,7 +29,7 @@ for (sim in 1:num_simulations) {
   alpha07 <- -0.5
   alpha08 <- -0.5
   
-  alpha10 <- -6
+  alpha10 <- -4.8
   alpha11 <- -0.02
   alpha12 <- 0.01
   
@@ -91,7 +91,7 @@ for (sim in 1:num_simulations) {
     for (j in 1:5) {
       t <- measurement_times[i, j]
       if (!is.na(t)) {
-        backward_time <- observed_times[i] - t
+        backward_time <- survival_times[i] - t
         qol_measurements[j] <- alpha00 + 
           (alpha03 / (1 + exp(alpha04 * backward_time))) + 
           treatment[i] * (alpha05 + alpha06 * exp(alpha07 * backward_time + alpha08)) + 

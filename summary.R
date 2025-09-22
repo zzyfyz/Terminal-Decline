@@ -1,69 +1,60 @@
 library(readr)
 library(dplyr)
 library(stringr)
+library(purrr)
+
 
 # Define true values for the parameters
-true_values <- c(alpha01 = 1, alpha02 = 1.6, alpha11 = 0.2, alpha12 = -0.01, 
-                 b = 0.03, c = 0.02, sigma_b = 6, sigma_u = 5, 
-                 sigma_e = 4, lambda0 = 0.05, gamma = 2.2)
+true_values <- c(alpha1 = 0.7, alpha2 = -0.03, phi0 = -4.8, phi1 = -0.02, phi2 = 0.01, v1 = 0.3, v2 = -0.2, 
+                 sigma_b = 1, sigma_u = 0.5, 
+                 sigma_e = 1, gamma = 1.4)
 
 # Set the directory path
-file_path <- "C:/Yizhou/Results"
+file_path <- "C:/Yizhou/Results/C10_D40_512"
 
-# Get all simulation result files
-file_list <- list.files(path = file_path, pattern = "mod\\.result\\..*\\.csv", full.names = TRUE)
+files <- list.files(path = file_path, pattern = "^mod\\.result\\.(\\d+)\\.csv$", full.names = TRUE)
+idx   <- as.integer(str_match(basename(files), "^mod\\.result\\.(\\d+)\\.csv$")[,2])
+o     <- order(idx); files <- files[o]
 
-# Initialize a data frame to store the summary
-results_summary <- data.frame(Parameter = names(true_values),
-                              True_Value = true_values,
-                              Bias = NA,
-                              MSE = NA,
-                              Coverage = NA)
-
-# Loop over each file and summarize results
-all_results <- lapply(file_list, function(file) {
-  # Read the file
-  data <- read_csv(file, col_names = TRUE)
+read_one <- function(f) {
+  df <- read_csv(f, show_col_types = FALSE)
   
-  # Assign proper column names based on the structure
-  colnames(data) <- c("Parameter", "mean", "se_mean", "sd", "2.50%", "25%", "50%", "75%", "97.50%", "n_eff", "Rhat")
+  # rename first column to Parameter (handles ...1 or already-named exports)
+  if ("Parameter" %in% names(df)) {
+    # nothing
+  } else if ("...1" %in% names(df)) {
+    df <- df %>% rename(Parameter = `...1`)
+  } else {
+    stop(sprintf("Can't find parameter-name column in %s", f))
+  }
   
-  # Calculate metrics for each parameter
-  metrics <- lapply(names(true_values), function(param) {
-    true_value <- true_values[param]
-    
-    # Filter data for the current parameter
-    param_data <- data %>% filter(Parameter  == param)
-    
-    # Extract relevant columns
-    est <- param_data$mean
-    lower <- param_data$`2.50%`
-    upper <- param_data$`97.50%`
-    
-    # Calculate bias, MSE, and 95% coverage
-    bias <- mean(est - true_value)
-    mse <- mean((est - true_value)^2)
-    coverage <- mean(true_value >= lower & true_value <= upper)
-    
-    return(c(bias = bias, mse = mse, coverage = coverage))
-  })
-  
-  # Combine results for all parameters in this file
-  do.call(rbind, metrics)
-})
-
-# Combine results across all files
-all_results_df <- do.call(rbind, all_results)
-
-# Summarize results across all simulations
-for (i in seq_along(names(true_values))) {
-  param <- names(true_values)[i]
-  param_results <- all_results_df[param, ]
-  
-  results_summary[i, "Bias"] <- mean(param_results[, "bias"])
-  results_summary[i, "MSE"] <- mean(param_results[, "mse"])
-  results_summary[i, "Coverage"] <- mean(param_results[, "coverage"])
+  df %>%
+    mutate(Parameter = trimws(Parameter)) %>%
+    filter(Parameter %in% names(true_values)) %>%
+    transmute(
+      file  = basename(f),
+      Parameter,
+      est   = mean,
+      lower = `2.5%`,
+      upper = `97.5%`,
+      true  = unname(true_values[Parameter]),
+      bias  = est - true,
+      mse   = (est - true)^2,
+      coverage = as.integer(true >= lower & true <= upper)
+    )
 }
+
+all_results <- map_dfr(files, read_one)
+
+results_summary <- all_results %>%
+  group_by(Parameter) %>%
+  summarise(
+    True_Value = first(true),
+    Bias       = mean(bias, na.rm = TRUE),
+    MSE        = mean(mse,  na.rm = TRUE),
+    Coverage   = mean(coverage, na.rm = TRUE),
+    .groups = "drop"
+  )
 
 # Save the summary to a CSV file
 write.csv(results_summary, file = file.path(file_path, "simulation_summary.csv"), row.names = FALSE)
