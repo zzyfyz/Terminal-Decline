@@ -8,6 +8,7 @@ setwd(dirg)
 
 num_simulations <- 300
 
+
 ## ---------- REST EXACT CLUSTER SIZES (set once, used every sim) ----------
 sizes_control  <- c(7, 8, 8, 11, 14, 15, 37, 38, 48)
 sizes_treat    <- c(1, 3, 6, 17, 64, 102)
@@ -32,7 +33,7 @@ for (sim in 1:num_simulations) {
   # subject_cluster, treatment_vec, n are already defined above and fixed
   
   ## Study design
-  study_duration <- 12          # months
+  study_duration <- 9          # months
   measurement_interval <- 3     # every 3 months: 0,3,6,9,12
   
   ## Fixed-effect parameters (yours)
@@ -46,7 +47,7 @@ for (sim in 1:num_simulations) {
   alpha07 <- -0.5
   alpha08 <- -0.5
   
-  alpha10 <- -4.8
+  alpha10 <- -5.2
   alpha11 <- -0.02
   alpha12 <- 0.01
   
@@ -73,29 +74,66 @@ for (sim in 1:num_simulations) {
   survival_times <- (-log(U) / lambda)^(1 / gamma)
   
   ## Censoring
-  censoring_rate  <- 1 / (20 * study_duration)
+  censoring_rate  <- 1 / (2 * study_duration)
   censoring_times <- rexp(n, rate = censoring_rate)
   
   ## Observed time & status
   observed_times <- pmin(survival_times, censoring_times, study_duration)
   status <- as.integer(survival_times <= pmin(censoring_times, study_duration))
   
-  ## Measurement times (≤ 5 per subject; jitter around schedule)
-  measurement_times <- t(sapply(seq_len(n), function(i) {
-    sched <- seq(0, study_duration, by = measurement_interval)
-    actual <- ifelse(sched > 0, sched + runif(length(sched), -1.5, 1.5), sched)
-    actual <- actual[actual < observed_times[i]]
-    actual[actual > study_duration] <- study_duration
-    if (length(actual) < 5) actual <- c(actual, rep(NA_real_, 5 - length(actual)))
-    actual[1:5]
-  }))
+  sd_last <- 1  # tune e.g., 0.75–1.5
+  
+  measurement_times <- t(vapply(seq_len(n), function(i) {
+    sched <- seq(0, study_duration, by = measurement_interval) 
+    Tobs  <- observed_times[i]
+    
+    # keep only scheduled visits strictly before the observed time
+    valid <- sched[sched < Tobs]
+    if (length(valid) == 0) return(rep(NA_real_, 4))
+    
+    # take up to first 3 scheduled times and jitter >0 ones
+    first3 <- head(valid, 3)
+    k3     <- length(first3)
+    
+    if (k3 > 0) {
+      idx <- which(first3 > 0)  # don't jitter baseline at 0
+      if (length(idx) > 0) {
+        first3[idx] <- first3[idx] + runif(length(idx), -1, 1)
+        first3[idx] <- pmin(study_duration, pmax(0, first3[idx]))
+      }
+      first3 <- sort(first3)
+    }
+    
+    # Only draw time_4 if all three early visits exist
+    t4 <- NA_real_
+    if (k3 == 3) {
+      lb <- max(first3) + 1e-6
+      ub <- min(Tobs, study_duration) - 1e-6
+      if (ub > lb) {
+        # rejection sampling for truncated Normal
+        for (attempt in 1:100) {
+          cand <- rnorm(1, mean = 9, sd = sd_last)
+          if (cand > lb && cand < ub) { t4 <- cand; break }
+        }
+        # robust fallback: clamp near 9 within (lb, ub)
+        if (is.na(t4)) t4 <- min(max(9, lb + 1e-6), ub - 1e-6)
+      }
+    }
+    
+    # pack to length 4: first up to 3 times, then time_4 (or NA)
+    out <- rep(NA_real_, 4)
+    out[1:k3] <- first3
+    out[4]    <- t4
+    out
+  }, FUN.VALUE = numeric(4)))
+  
   measurement_times_df <- as.data.frame(measurement_times)
-  colnames(measurement_times_df) <- paste0("time_", 1:5)
+  colnames(measurement_times_df) <- paste0("time_", 1:4)
   
   ## QoL at measurement times (backward-time structure)
   qol_values <- t(sapply(seq_len(n), function(i) {
-    out <- rep(NA_real_, 5)
-    for (j in 1:5) {
+    out <- rep(NA_real_, 4)
+    for (j in 1:4) {
       t_ij <- measurement_times[i, j]
       if (!is.na(t_ij)) {
         bt <- observed_times[i] - t_ij
@@ -109,11 +147,11 @@ for (sim in 1:num_simulations) {
     out
   }))
   qol_values_df <- as.data.frame(qol_values)
-  colnames(qol_values_df) <- paste0("qol_", 1:5)
+  colnames(qol_values_df) <- paste0("qol_", 1:4)
   
   ## Mask (1 observed, 0 missing)
   mask_df <- as.data.frame(!is.na(measurement_times_df)) * 1L
-  colnames(mask_df) <- paste0("mask_", 1:5)
+  colnames(mask_df) <- paste0("mask_", 1:4)
   
   ## Final dataset
   final_data <- data.frame(subject = seq_len(n)) %>%
