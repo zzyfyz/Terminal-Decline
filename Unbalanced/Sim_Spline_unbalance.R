@@ -47,7 +47,7 @@ for (sim in 1:num_simulations) {
   alpha07 <- -0.5
   alpha08 <- -0.5
   
-  alpha10 <- -5.2
+  alpha10 <- -5.4
   alpha11 <- -0.02
   alpha12 <- 0.01
   
@@ -74,57 +74,57 @@ for (sim in 1:num_simulations) {
   survival_times <- (-log(U) / lambda)^(1 / gamma)
   
   ## Censoring
-  censoring_rate  <- 1 / (2 * study_duration)
+  censoring_rate  <- 1 / (4 * study_duration)
   censoring_times <- rexp(n, rate = censoring_rate)
   
   ## Observed time & status
   observed_times <- pmin(survival_times, censoring_times, study_duration)
   status <- as.integer(survival_times <= pmin(censoring_times, study_duration))
   
-  sd_last <- 1  # tune e.g., 0.75–1.5
+  ## tuning
+  dev3   <- 1.0    # +/- jitter around 3
+  dev6   <- 1.0    # +/- jitter around 6
+  dev9   <- 0.25   # +/- jitter around 9
+  eps    <- 1e-6
+  gap_min <- 0.0   # require at least this gap from previous kept time (e.g., 0.5)
   
   measurement_times <- t(vapply(seq_len(n), function(i) {
-    sched <- seq(0, study_duration, by = measurement_interval) 
-    Tobs  <- observed_times[i]
+    Tobs  <- observed_times[i]                      # min(survival, censoring, 9)
+    died  <- (status[i] == 1L)
+    surv9 <- (!died) && (abs(Tobs - study_duration) < 1e-8)  # alive through month 9
     
-    # keep only scheduled visits strictly before the observed time
-    valid <- sched[sched < Tobs]
-    if (length(valid) == 0) return(rep(NA_real_, 4))
+    # scheduled with jitter (0 fixed)
+    t1 <- 0
+    t2r <- 3 + runif(1, -dev3, dev3)
+    t3r <- 6 + runif(1, -dev6, dev6)
+    t4r <- 9 + runif(1, -dev9, dev9)
     
-    # take up to first 3 scheduled times and jitter >0 ones
-    first3 <- head(valid, 3)
-    k3     <- length(first3)
+    # clamp to [0, 9] for drawing; we'll enforce observed-time after
+    t2 <- pmax(0, pmin(t2r, study_duration))
+    t3 <- pmax(0, pmin(t3r, study_duration))
+    t4 <- pmax(0, pmin(t4r, study_duration))
     
-    if (k3 > 0) {
-      idx <- which(first3 > 0)  # don't jitter baseline at 0
-      if (length(idx) > 0) {
-        first3[idx] <- first3[idx] + runif(length(idx), -1, 1)
-        first3[idx] <- pmin(study_duration, pmax(0, first3[idx]))
-      }
-      first3 <- sort(first3)
+    # apply ">= observed_time -> NA" for time_2 and time_3
+    if (t2 >= Tobs - eps) t2 <- NA_real_
+    if (t3 >= Tobs - eps) t3 <- NA_real_
+    
+    # previous available time (to enforce ordering for time_4)
+    prev <- max(c(t1, t2, t3), na.rm = TRUE)
+    
+    # LAST MEASUREMENT RULES
+    if (surv9 && (t4r > study_duration)) {
+      # survivor to 9 and simulated > 9  -> keep exactly 9
+      t4 <- study_duration
+      # ensure ordering; if no room, drop
+      if (t4 <= prev + gap_min + eps) t4 <- NA_real_
+    } else {
+      # everyone else: do NOT truncate to observed time; just obey the NA rule
+      if (t4 >= Tobs - eps) t4 <- NA_real_
+      # enforce ordering if kept
+      if (!is.na(t4) && t4 <= prev + gap_min + eps) t4 <- NA_real_
     }
     
-    # Only draw time_4 if all three early visits exist
-    t4 <- NA_real_
-    if (k3 == 3) {
-      lb <- max(first3) + 1e-6
-      ub <- min(Tobs, study_duration) - 1e-6
-      if (ub > lb) {
-        # rejection sampling for truncated Normal
-        for (attempt in 1:100) {
-          cand <- rnorm(1, mean = 9, sd = sd_last)
-          if (cand > lb && cand < ub) { t4 <- cand; break }
-        }
-        # robust fallback: clamp near 9 within (lb, ub)
-        if (is.na(t4)) t4 <- min(max(9, lb + 1e-6), ub - 1e-6)
-      }
-    }
-    
-    # pack to length 4: first up to 3 times, then time_4 (or NA)
-    out <- rep(NA_real_, 4)
-    out[1:k3] <- first3
-    out[4]    <- t4
-    out
+    c(t1, t2, t3, t4)
   }, FUN.VALUE = numeric(4)))
   
   measurement_times_df <- as.data.frame(measurement_times)
