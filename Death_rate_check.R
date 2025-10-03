@@ -1,4 +1,4 @@
-dirg <- "C:/Yizhou/Term/Terminal-Decline/Piecewise"  
+dirg <- "C:/Yizhou/Term/Terminal-Decline/Unbalanced"  
 
 files <- list.files(
   path = dirg,
@@ -24,6 +24,19 @@ pooled_counts <- sapply(files, function(f) {
     n      = sum(!is.na(df$status)))
 })
 pooled_death_rate <- sum(pooled_counts["deaths", ]) / sum(pooled_counts["n", ])
+
+# ---- summarize site sizes across simulations ----
+site_sizes_all <- unlist(lapply(files, function(f) {
+  df <- read.csv(f)
+  table(df$site_id)   # count subjects per site
+}))
+
+site_summary <- c(
+  mean = mean(site_sizes_all),
+  sd   = sd(site_sizes_all),
+  min  = min(site_sizes_all),
+  max  = max(site_sizes_all)
+)
 
 # save next to the data
 out <- data.frame(file = basename(files), index = idx, death_rate = as.numeric(death_rates))
