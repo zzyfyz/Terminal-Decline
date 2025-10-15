@@ -1,4 +1,4 @@
-dirg <- "C:/Yizhou/Term/Terminal-Decline/Unbalanced"  
+dirg <- "C:/Yizhou/Term/Terminal-Decline/Piecewise"  
 
 files <- list.files(
   path = dirg,
