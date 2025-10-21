@@ -5,7 +5,7 @@ library(ggplot2)
 library(purrr)
 
 # --- Inputs ---
-dirg    <- "C:/Yizhou/Term/Terminal-Decline/Piecewise"
+dirg    <- "C:/Yizhou/Sim_data/Piecewise_124"
 breaks  <- c(0, 4, 8, 12)       # administrative cap at 12 in your sim
 cutlabs <- paste0("(", head(breaks, -1), ",", tail(breaks, -1), "]")
 
